@@ -2,7 +2,7 @@ import { clamp } from './math';
 import { COURSE } from './trackDef';
 import { Rng } from './rng';
 import { Track } from './Track';
-import { AIDriver, buildAiProfile, type Obstacle } from './ai';
+import { AIDriver, buildAiProfile, rubberBand, type Obstacle } from './ai';
 import { PHYS, collideTrack, createCar, emit, newInput, placeCar, stepCar, type CarInput, type CarState } from './carPhysics';
 import type { Difficulty } from './rewards';
 
@@ -129,7 +129,7 @@ export class RaceSim {
       let inp: CarInput;
       if (car.id === 0 && !this.autopilot) inp = this.playerInput;
       else {
-        const rubber = car.id === 0 ? 0 : clamp((leaderProgress - car.progress) / 260, -0.035, 0.045);
+        const rubber = car.id === 0 ? 0 : rubberBand(leaderProgress - car.progress);
         inp = this.drivers[car.id]!.update(car, dt, this.cars, this.obstacles, rubber, !locked);
       }
       stepCar(car, inp, dt, locked);

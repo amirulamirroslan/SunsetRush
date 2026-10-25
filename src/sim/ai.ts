@@ -1,4 +1,5 @@
-import { clamp, angleDiff } from './math';
+import { clamp, angleDiff, smoothstep } from './math';
+import { Rng } from './rng';
 import { PHYS, cornerSpeed, type CarInput, type CarState, newInput } from './carPhysics';
 import type { Track } from './Track';
 import type { Difficulty } from './rewards';
@@ -11,7 +12,18 @@ export interface Obstacle {
   s: number; lat: number;
 }
 
-const SKILL: Record<Difficulty, [number, number]> = { easy: [0.72, 0.8], normal: [0.84, 0.91], hard: [0.93, 0.985] };
+const SKILL: Record<Difficulty, [number, number]> = { easy: [0.72, 0.8], normal: [0.85, 0.92], hard: [0.93, 0.99] };
+/** Misjudged corners per second of racing (only rolled when a real corner is coming up). Harder rivals make fewer errors. */
+const ERROR_RATE: Record<Difficulty, number> = { easy: 0.09, normal: 0.05, hard: 0.022 };
+
+/**
+ * Catch-up pace for rivals, from the gap to the player (metres, positive = the rival is behind). Nothing happens while the
+ * rival is within a car-length-or-two band either side, so close racing is decided by driving, not by a hidden speed boost; the
+ * help only ramps in once a rival is well adrift, and it is stronger for those who are behind than for those who are ahead.
+ */
+export function rubberBand(gap: number): number {
+  return gap > 0 ? 0.05 * smoothstep(60, 330, gap) : -0.04 * smoothstep(100, 420, -gap);
+}
 
 /** Shared per-track speed profile used by all rivals (the same limits a human driver faces). */
 export function buildAiProfile(track: Track): Float32Array {
@@ -27,6 +39,11 @@ export class AIDriver {
   private readonly skill: number;
   private readonly preferredLane: number;
   private wobble: number;
+  private readonly rng: Rng;
+  private readonly errorRate: number;
+  /** Late-braking nerve: how much cornering speed this driver trusts, 0.97..1.03. */
+  private readonly nerve: number;
+  private mistake = 0; private mistakeKind: 'overcook' | 'early' = 'overcook'; private mistakeCooldown = 6;
 
   constructor(private readonly track: Track, private readonly profile: Float32Array, difficulty: Difficulty, seed: number) {
     const [lo, hi] = SKILL[difficulty];
@@ -35,6 +52,9 @@ export class AIDriver {
     this.preferredLane = ((seed % 5) - 2) * 1.5;
     this.lane = this.laneTarget = this.preferredLane;
     this.wobble = seed * 1.7;
+    this.rng = new Rng(seed * 7919 + 13);
+    this.nerve = 0.97 + this.rng.next() * 0.06;
+    this.errorRate = ERROR_RATE[difficulty] * (0.6 + this.rng.next() * 0.9);
   }
 
   update(car: CarState, dt: number, cars: readonly CarState[], obstacles: readonly Obstacle[], rubber: number, racing: boolean): CarInput {
@@ -76,7 +96,18 @@ export class AIDriver {
     // ---- speed
     this.wobble += dt;
     const idx = t.wrap(Math.round((s + speed * 0.25) / t.spacing));
-    const target = this.profile[idx] * this.skill * (1 + rubber) * (1 + 0.012 * Math.sin(this.wobble * 0.7));
+    let target = this.profile[idx] * this.skill * (1 + rubber) * (1 + 0.012 * Math.sin(this.wobble * 0.7));
+    // corners: confident drivers carry a touch more speed; occasionally anyone misjudges one (runs in too hot, or brakes far too early)
+    const kNow = Math.max(Math.abs(t.curvature[ia]), Math.abs(t.curvature[t.wrap(ia + 12)]));
+    if (kNow > 0.006) target *= this.nerve;
+    this.mistakeCooldown -= dt;
+    if (this.mistake > 0) {
+      this.mistake -= dt;
+      target *= this.mistakeKind === 'overcook' ? 1.13 : 0.78;
+    } else if (this.mistakeCooldown <= 0 && speed > 28 && kNow > 0.009) {
+      this.mistakeCooldown = 1.5;
+      if (this.rng.next() < this.errorRate * 1.5) { this.mistake = this.rng.range(0.9, 1.5); this.mistakeKind = this.rng.next() < 0.6 ? 'overcook' : 'early'; this.mistakeCooldown = 14; }
+    }
     const over = speed - target;
     if (over > 1.5) { inp.throttle = 0; inp.brake = clamp(over / 9, 0, 1); }
     else { inp.throttle = speed < target ? 1 : 0.35; inp.brake = 0; }
