@@ -97,9 +97,9 @@ export function helpDialog(close: () => void, touch: boolean): HTMLElement {
   ]);
 }
 
-export function pauseDialog(a: { resume(): void; restart(): void; settings(): void; quit(): void }): HTMLElement {
-  return el('div', { class: 'dialog panel' }, [
-    el('h2', { class: 'title' }, ['Paused']),
+export function pauseDialog(a: { resume(): void; restart(): void; settings(): void; quit(): void }, status?: string): HTMLElement {
+  return el('div', { class: 'dialog panel pause' }, [
+    el('div', { class: 'head' }, [el('div', { class: 'label' }, ['Race']), el('h2', { class: 'title' }, ['Paused']), status ? el('div', { class: 'status' }, [status]) : null]),
     el('div', { class: 'stack' }, [
       el('button', { class: 'btn block', onclick: a.resume }, [icon('play'), 'Resume']),
       el('button', { class: 'btn ghost block', onclick: a.restart }, [icon('restart'), 'Restart race']),

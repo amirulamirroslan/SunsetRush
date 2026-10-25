@@ -270,3 +270,89 @@ body.auto-acc .tbtn.brake { right: 6px; bottom: 6px; width: 92px; height: 92px; 
   .gauge { bottom: calc(max(14px, var(--safe-b)) + 232px); }
 }
 .menu-col .hint { text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+
+/* ---------- polish pass: consistent hierarchy, no overlaps on short screens */
+.menu-foot, .carname { pointer-events: none; }
+.setup-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.setup .label { display: flex; align-items: center; gap: 8px; }
+.setup .seg { width: 100%; }
+.setup .seg button { flex: 1; }
+.setup .hint { margin: -4px 0 0; }
+.track-card b { text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+/* race setup replaces the stacked logo with a one-line wordmark so the panel always fits above the footer */
+#menu.setup-open .menu-col { justify-content: center; gap: 14px; }
+#menu.setup-open .logo { font-size: clamp(34px, 8vmin, 72px); line-height: 0.95; }
+#menu.setup-open .logo br, #menu.setup-open .logo small { display: none; }
+#menu.setup-open .menu-foot { display: none; }
+.menu-col .hint { max-width: 46ch; }
+.panel .label { color: #d7cbec; }
+
+.dialog.pause { width: min(420px, 100%); }
+.dialog .head { display: grid; gap: 4px; }
+.dialog .head .label { color: var(--hot); letter-spacing: 0.26em; }
+.dialog .status { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dialog .stack .btn { justify-content: flex-start; padding-left: 28px; }
+.dialog h2 { text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+
+/* HUD: one visual language for the small readouts */
+.lapbox, .timer, #minimap { box-shadow: 0 6px 18px rgba(8, 4, 24, 0.35); }
+.timer { border-bottom-color: rgba(255, 128, 88, 0.85); }
+.best { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.8); }
+.keyhint { background: rgba(16, 12, 38, 0.72); }
+
+/* results: calmer hero, clearer table, fits short landscape screens without scrolling away the actions */
+.res { border-top-width: 2px; }
+.res .hero > .label:first-child { color: var(--gold); letter-spacing: 0.26em; }
+.res .table .tr span:first-child { color: var(--muted); }
+.res .table .tr.me span:first-child { color: #fff; }
+.res .actions { padding-top: 4px; }
+@media (max-height: 640px) {
+  .dialog { padding: 18px; gap: 12px; } .dialog h2 { font-size: 32px; }
+  .setup { padding: 14px; gap: 10px; }
+  .setup .btn { --h: 46px; font-size: 19px; padding: 0 24px; }
+  .setup .seg button { min-height: 36px; padding: 5px 14px; font-size: 18px; }
+  .track-card canvas { width: 96px; height: 66px; } .track-card b { font-size: 22px; }
+  .res { padding: 14px; gap: 12px; } .res .hero { gap: 8px; }
+  .res .place b { font-size: clamp(54px, 13vmin, 96px); }
+  .stat { padding: 6px 10px; } .stat b { font-size: 23px; }
+  .table .tr { padding: 3px 10px; font-size: 17px; } .table { gap: 3px; }
+  .rewards .rl { padding: 4px 2px; font-size: 15px; } .total { font-size: 25px; padding: 5px 12px; }
+  .res .actions .btn { --h: 46px; font-size: 18px; padding: 0 24px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .menu-foot { display: none; }
+  .menu-col .hint { font-size: 14px; }
+  #menu.setup-open .menu-col { gap: 8px; }
+}
+/* results: the action buttons stay reachable even when the panel has to scroll (phones), and short landscape keeps two columns */
+.res { --rp: 22px; padding: var(--rp); }
+.res .actions { position: sticky; bottom: calc(var(--rp) * -1); margin: 0 calc(var(--rp) * -1) calc(var(--rp) * -1); padding: 12px var(--rp) var(--rp); background: linear-gradient(0deg, var(--panel-solid) 62%, rgba(26, 22, 64, 0)); z-index: 1; }
+@media (max-height: 640px) { .res { --rp: 14px; } }
+@media (max-height: 520px) and (orientation: landscape) {
+  .res { grid-template-columns: 1.1fr 1fr; gap: 8px 14px; }
+  .res .place b { font-size: 56px; } .res .medal { width: 44px; height: 44px; font-size: 22px; }
+  .stat b { font-size: 20px; } .stat { padding: 4px 8px; } .stats { gap: 6px; }
+  .table .tr { padding: 2px 8px; font-size: 15px; } .rewards .rl { padding: 3px 2px; font-size: 14px; }
+  .total { font-size: 21px; padding: 4px 10px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .res .actions { grid-column: 2; position: static; margin: 0; padding: 0; background: none; justify-content: flex-start; gap: 8px; }
+  .res .actions .btn { --h: 40px; font-size: 16px; padding: 0 16px; }
+  .setup { padding: 10px 12px; gap: 8px; }
+  .setup .row { grid-template-columns: 64px 1fr; align-items: center; gap: 10px; }
+  .setup .hint { display: none; }
+  .setup .seg button { min-height: 32px; padding: 3px 12px; font-size: 17px; }
+  .setup .btn { --h: 40px; font-size: 17px; padding: 0 20px; }
+  .track-card canvas { width: 76px; height: 52px; } .track-card b { font-size: 19px; } .track-card span { font-size: 13px; }
+  #menu.setup-open .logo { font-size: 30px; }
+  .menu-col { max-height: 100%; overflow-y: auto; }
+}
+@media (max-width: 760px) {
+  .res .actions { flex-wrap: nowrap; gap: 6px; }
+  .res .actions .btn { flex: 1 1 0; min-width: 0; --h: 46px; font-size: 15px; padding: 0 8px; gap: 6px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .res .notice, .res .hero > .hint { display: none; }
+  .res .actions { align-self: start; }
+}
+@media (max-width: 760px) { .res .actions .btn { white-space: nowrap; font-size: 14px; padding: 0 6px; } }

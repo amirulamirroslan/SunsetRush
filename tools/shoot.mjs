@@ -4,7 +4,7 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 const [base = 'http://127.0.0.1:4173/', out = 'shots', tier = 'high', W = '1280', H = '720'] = process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
-const chromePath = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const chromePath = process.env.CHROME_PATH ?? (process.env.CHROME_PATH_DEFAULT ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome');
 const browser = await chromium.launch({ executablePath: chromePath, args: ['--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: +W, height: +H } });
 const page = await ctx.newPage();

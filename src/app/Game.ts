@@ -14,7 +14,7 @@ import { Track } from '../sim/Track';
 import { COURSE } from '../sim/trackDef';
 import { FIXED_DT, INTRO_SECONDS, RaceSim } from '../sim/RaceSim';
 import type { CarState } from '../sim/carPhysics';
-import { computeRewards } from '../sim/rewards';
+import { computeRewards, ordinal } from '../sim/rewards';
 import { angleDiff, clamp, lerp } from '../sim/math';
 import { CATEGORIES, RIVALS, findPaint, type CategoryId, type Loadout, type VehicleId } from '../data/catalog';
 import { SaveStore } from '../save/save';
@@ -261,7 +261,9 @@ export class Game {
   private pause(): void {
     if (this.mode !== 'race' || this.paused) return;
     this.paused = true; this.controls.reset(); this.audio.silenceEngine();
-    this.ui.openPause(() => this.resume());
+    const sim = this.sim, car = sim?.cars[0];
+    const status = sim && car ? `Lap ${Math.min(sim.config.laps, Math.max(1, car.lap + 1))}/${sim.config.laps} · ${ordinal(sim.ranks[0])} of ${sim.cars.length}` : undefined;
+    this.ui.openPause(() => this.resume(), status);
   }
   private resume(): void { if (this.mode === 'race') { this.paused = false; this.last = performance.now(); } }
 

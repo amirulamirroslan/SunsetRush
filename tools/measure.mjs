@@ -3,7 +3,7 @@
 // Usage: node tools/measure.mjs <baseUrl> [tiers=low,medium,high] [w=640] [h=360] [positions=0,9,9,9]   (positions = seconds fast-forwarded between samples)
 import { chromium } from 'playwright-core';
 const [base = 'http://127.0.0.1:4173/', tiers = 'low,medium,high', W = '640', H = '360', steps = '0,9,9,9'] = process.argv.slice(2);
-const chromePath = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const chromePath = process.env.CHROME_PATH ?? (process.env.CHROME_PATH_DEFAULT ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome');
 const browser = await chromium.launch({ executablePath: chromePath, args: ['--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 const all = {};
 for (const tier of tiers.split(',')) {

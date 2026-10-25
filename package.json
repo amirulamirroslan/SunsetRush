@@ -1,7 +1,7 @@
 {
   "name": "sunset-rush",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sunset Rush — a polished 3D arcade racing adventure (Vite + TypeScript + Three.js)",
   "type": "module",
   "scripts": {

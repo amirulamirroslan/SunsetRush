@@ -5,8 +5,9 @@ import { Rng } from '../sim/rng';
 import { newQuery, type Track } from '../sim/Track';
 import { TIERS, type Tier } from './quality';
 import { barrelGeometry, coneGeometry, lampGeometry, palmGeometry, tyreStackGeometry, umbrellaGeometry, villaGeometry } from './propGeo';
-import { ChunkedInstances, bushMesh, broadleafMesh, flowerMesh, grassMesh, pineMesh, planVegetation, rockMesh, type ChunkOpts, type Placement } from './vegetation';
+import { ChunkedInstances, bushMesh, broadleafMesh, cypressMesh, flowerMesh, grassMesh, pineMesh, planVegetation, rockMesh, scrubMesh, slabRockMesh, type ChunkOpts, type Placement } from './vegetation';
 import type { Terrain } from './terrain';
+import { buildTrackside } from './trackside';
 import type { Obstacle } from '../sim/ai';
 
 interface Item { x: number; y: number; z: number; s: number; r: number; sy?: number; sx?: number; tint?: number }
@@ -154,6 +155,11 @@ export class Scenery {
       addChunks(plan.oaks.filter((_, i) => i % 3 === k), broadleafMesh(seed, 0), broadleafMesh(seed, 1), leafMat, { hiRange: 150, cullRange: 2600, shadow, tint: true });
       addChunks(plan.pines.filter((_, i) => i % 3 === k), pineMesh(seed, 0), pineMesh(seed, 1), leafMat, { hiRange: 150, cullRange: 2600, shadow, tint: true });
     }
+    // one mesh variant each (random rotation, scale and tint supply the variety) to keep draw calls down
+    addChunks(plan.slimPines, pineMesh(51, 0, true), pineMesh(51, 1, true), leafMat, { cell: 160, hiRange: 150, cullRange: 2600, shadow, tint: true });
+    addChunks(plan.cypresses, cypressMesh(67, 0), cypressMesh(67, 1), leafMat, { cell: 160, hiRange: 130, cullRange: 2200, shadow, tint: true });
+    addChunks(plan.scrub, scrubMesh(9, 0), scrubMesh(9, 1), bushMat, { cell: 140, hiRange: 80, cullRange: 1100 });
+    addChunks(plan.slabs, slabRockMesh(5, 0), slabRockMesh(5, 1), rockMat, { cell: 160, hiRange: 140, cullRange: 2000, shadow });
     addChunks(plan.bushes, bushMesh(5, 0), bushMesh(5, 1), bushMat, { hiRange: 90, cullRange: 1400, tint: true });
     for (const [seed, k] of [[3, 0], [8, 1]] as const) addChunks(plan.rocks.filter((_, i) => i % 2 === k), rockMesh(seed, 0), rockMesh(seed, 1), rockMat, { hiRange: 120, cullRange: 1800, shadow });
     addChunks(plan.tufts, grassMesh(5), null, tuftMat, { cell: 70, hiRange: 120, tint: true });
@@ -192,6 +198,9 @@ export class Scenery {
       tmpM.compose(tmpP, tmpQ, tmpS.set(1, 1, 1)); bulbs.setMatrixAt(i, tmpM);
     });
     this.group.add(bulbs);
+
+    // ---------- overpasses, braking boards and marshal posts
+    this.group.add(buildTrackside(track, terrain, this.keep));
 
     // ---------- sailboats and distant islands for depth
     const hullMat = this.keep(new MeshStandardMaterial({ color: 0xf6efe2, roughness: 0.6 })), sailMat = this.keep(new MeshStandardMaterial({ color: 0xfff3dc, roughness: 0.9, side: DoubleSide }));

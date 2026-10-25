@@ -25,3 +25,6 @@ art beyond the car and asphalt has been verified. These are the sites and the st
 
 ## Not integrated
 - Kenney Nature Kit and Quaternius LowPoly Nature Pack list CC0 on their pages, but kenney.nl, quaternius.com, polyhaven.com and opengameart.org were unreachable from the build sandbox, so no files from them are in the game.
+
+## npm/GitHub survey (checkpoint 02)
+Inspected `@netforge/asset-library-files` (Kenney Nature Kit etc., CC0 per its NOTICE), `@jgengine/assets` (index only), `kenney-hexagon-pack`, `@pmndrs/assets`. The Kenney tree/rock models are 16-230 triangle flat-colour meshes, so they were not integrated; see REPORT.md. `api.github.com` is blocked here; `raw.githubusercontent.com` works for known paths.
