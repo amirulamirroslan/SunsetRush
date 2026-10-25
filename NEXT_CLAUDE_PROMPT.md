@@ -1,14 +1,10 @@
 # Next Claude Prompt — Sunset Rush
 
-Continue the existing Sunset Rush racing game in this repository.
+Continue the existing Sunset Rush racing game in this repository (branch `sunset-rush-cloud-development`; never force-push, never touch `main`).
 
-1. Read HANDOVER.md and inspect the actual source code.
-2. Audit the current graphics, track environments, cars, driving physics, camera, controls, UI, performance, and mobile support.
-3. Rank the five highest-impact improvements by visual quality, gameplay, feasibility, and commercial appeal.
-4. Start with the highest-priority improvement after confirming it fits the existing architecture.
-5. Do not rebuild from scratch or remove existing features unnecessarily.
-6. Make focused changes and test them.
-7. Commit and push completed milestones to sunset-rush-cloud-development.
-8. Never force-push or overwrite main.
-9. Update HANDOVER.md and this file with completed work, actual test results, known issues, and exact next steps before ending the session.
-10. Save progress frequently and preserve unfinished work if the session is about to end.
+1. Read `HANDOVER.md` (audit ranking, verified results, known issues), then inspect the real source. Confirm the baseline yourself: `npm ci && npm run typecheck && npm test && npm run build` (expected at last handover: tsc clean, 42/42 tests, build OK).
+2. Do not redo completed work: world/UI polish (REPORT.md) and rival racing quality pass 1 (`src/sim/ai.ts`, `src/sim/racing.test.ts`).
+3. Next task: improvement **#2, mobile/low-end performance**. Measure first with `tools/measure.mjs` (baseline: medium 759/535 main-pass draw calls, low 787/536; ~0.7–0.9 M tris), then cut draw calls (coarser/merged vegetation chunks, per-tier caps, far-LOD) and shave the 814 kB main chunk (lazy-load garage / HDRI, split three). Keep visuals; compare screenshots before/after. Report calls/tris before and after.
+   Alternative if you prefer gameplay: rest of #1 (rivals defend/attack, slipstream, rival engine audio).
+4. Keep cars, physics tuning, camera, controls and the garage layout unless fixing a verified bug. No feature additions for their own sake.
+5. Small milestones: test, commit and push after each. Do not claim anything is tested or complete unless you ran it. Before ending, update `HANDOVER.md` and this file with completed work, actual test/build results, known issues and the next task. No ZIP backups for now.
