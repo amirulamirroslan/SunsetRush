@@ -1,15 +1,14 @@
-# Copy-paste prompt for the next Claude session
+# Next Claude Prompt — Sunset Rush
 
-```
-You are continuing work on "Sunset Rush", a Vite + TypeScript + Three.js browser arcade racing game. The project ZIP is attached/unpacked in the working directory.
+Continue the existing Sunset Rush racing game in this repository.
 
-1. Read HANDOVER.md first, then README.md, REPORT.md and docs/ASSETS.md.
-2. Do NOT trust the handover blindly: inspect the actual source in src/, tools/ and the configs, and confirm the baseline yourself:
-   npm ci && npm run typecheck && npm test && npm run build
-   (expected at checkpoint 01: tsc clean, 36/36 tests passing, build OK).
-3. Continue from checkpoint 01. Do not redo completed work (simulation, rendering, UI, save system, environment colour/backdrop pass, optional ?hdri). Do not overwrite working features.
-4. First task: get the e2e flow (tools/e2e.mjs) genuinely running — set CHROME_PATH to the installed Chromium, serve with `npx vite preview --port 4173`, use a long timeout — and report the real result. It was NOT verified at checkpoint 01.
-5. Then ask me which outstanding item in HANDOVER.md section 4 to tackle (bundle size, draw calls, rock colour, HDRI decision, credits/attribution screen, versioning) before changing code.
-6. Never claim a feature is complete without running it. Report test/build failures honestly.
-7. When done or at a time limit, produce a new checkpoint: update HANDOVER.md and this file, create a versioned ZIP (exclude node_modules, dist, caches, secrets), verify it opens, and give me exact paths.
-```
+1. Read HANDOVER.md and inspect the actual source code.
+2. Audit the current graphics, track environments, cars, driving physics, camera, controls, UI, performance, and mobile support.
+3. Rank the five highest-impact improvements by visual quality, gameplay, feasibility, and commercial appeal.
+4. Start with the highest-priority improvement after confirming it fits the existing architecture.
+5. Do not rebuild from scratch or remove existing features unnecessarily.
+6. Make focused changes and test them.
+7. Commit and push completed milestones to sunset-rush-cloud-development.
+8. Never force-push or overwrite main.
+9. Update HANDOVER.md and this file with completed work, actual test results, known issues, and exact next steps before ending the session.
+10. Save progress frequently and preserve unfinished work if the session is about to end.
