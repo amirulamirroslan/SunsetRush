@@ -54,3 +54,10 @@ Priority changed: visual quality of car and world (gameplay features paused). Au
 Done (procedural, no new external assets): open twin-spoke alloy rims replace the model's star rims (`carModel.ts`), accent panels follow paint, brighter head/tail lights and reflections, scrub recoloured green (`vegetation.ts`), cooler higher-contrast barrier texture (`textures.ts`), brighter asphalt tint (`roadMesh.ts`), warmer-neutral hemisphere fill (`world.ts`), exposure 1.06 + CSS vignette/grade overlay (`gfx.ts`, `styles.css`).
 Verified: tsc clean, 42/42 tests, build OK, before/after screenshots (software GL; garage at high tier, race at medium). Not verified: real GPU/phone fps, draw calls after the change.
 Not done: car body shape, tree/palm variety, mountain backdrop texture, ocean edge, fence/tyre-wall models, unexplained white sky wedge (upper right in race frames). Asset candidates researched (Quaternius Stylized Nature MegaKit CC0, Kenney Racing Kit CC0, Poly Haven `cliff_side`/`coast_sand_rocks_02` CC0) but none downloaded or integrated; sandbox cannot reach those hosts.
+
+## Race experience & feedback pass (delivered as a ZIP, not committed or pushed)
+Done: continuous, correctly oriented skid marks (`src/render/skidTrail.ts`); boost FOV kick, exhaust flames, multi-particle bursts and no boost pull-back; scrape feedback event/sparks/sound (physics unchanged); camera lag compensation (`CAMERA_TUNING.lagComp` in `cameraRig.ts`, 0 = old behaviour). Details and measurements: `CHANGELOG_race_experience_pass.md`.
+Verified: tsc clean, 54/54 tests, build OK (main chunk 817.16 kB). Camera chase distance at 62 m/s 13.5 -> 9.6 m, boost 16.0 -> 10.2 m.
+Not verified: feel, audio, GPU fps, touch, and the boost/exhaust/scrape visuals on screen (headless browser kept closing).
+Workflow note: for this pass the owner asked for ZIP delivery and no commit/push without explicit approval, which supersedes the "commit and push after each milestone / no ZIP backups" lines above.
+Next candidates (need a playtest): drift economics and tier thresholds, handbrake-without-steer on touch, scrape penalty tuning, HUD boost bar on phones.

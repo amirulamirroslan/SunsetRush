@@ -90,6 +90,8 @@ export class GameAudio {
   miniTurbo(tier: number): void { this.burst(0.5, 600, 4000, 0.25); this.tone(300 + tier * 120, 0.3, 'triangle', 0.18, 900 + tier * 200); }
   driftTier(tier: number): void { this.tone(520 + tier * 180, 0.12, 'triangle', 0.14); }
   hit(strength: number): void { this.burst(0.25, 500, 90, clamp(strength / 25, 0.12, 0.45)); this.tone(90, 0.2, 'sine', clamp(strength / 30, 0.1, 0.3), 45); }
+  /** Light wall scrape: a short, quiet metallic rasp (rate-limited by the caller). */
+  scrape(strength: number): void { const k = clamp(strength / 3, 0.3, 1); this.burst(0.16, 2400, 1200, 0.05 + 0.07 * k); this.tone(140 + k * 60, 0.12, 'sawtooth', 0.03 + 0.03 * k, 90); }
   cone(): void { this.tone(700, 0.1, 'square', 0.1, 300); this.burst(0.1, 1800, 600, 0.12); }
   pad(): void { this.tone(400, 0.35, 'sawtooth', 0.12, 1300); this.burst(0.4, 800, 3000, 0.15); }
   lap(final: boolean): void { this.tone(660, 0.14, 'triangle', 0.2); this.tone(final ? 990 : 880, 0.22, 'triangle', 0.2, undefined, 0.12); }

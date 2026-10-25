@@ -152,7 +152,7 @@ export function makeBlob(): CanvasTexture {
 export function makeSkid(): CanvasTexture {
   const { c, g } = cv(32, 64);
   const gr = g.createLinearGradient(0, 0, 0, 64);
-  gr.addColorStop(0, 'rgba(10,10,12,0)'); gr.addColorStop(0.2, 'rgba(10,10,12,0.75)'); gr.addColorStop(0.8, 'rgba(10,10,12,0.75)'); gr.addColorStop(1, 'rgba(10,10,12,0)');
+  gr.addColorStop(0, 'rgba(10,10,12,0)'); gr.addColorStop(0.07, 'rgba(10,10,12,0.75)'); gr.addColorStop(0.93, 'rgba(10,10,12,0.75)'); gr.addColorStop(1, 'rgba(10,10,12,0)'); // short fades: marks are long and overlap, so the joins stay invisible
   g.fillStyle = gr; g.fillRect(6, 0, 20, 64);
   return finish(c, { aniso: false });
 }

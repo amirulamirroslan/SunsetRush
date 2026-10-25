@@ -99,8 +99,9 @@ export class SkidMarks {
     for (let i = 0; i < this.count; i++) this.mesh.setMatrixAt(i, this.dummy.matrix);
     this.mesh.instanceMatrix.setUsage(DynamicDrawUsage);
   }
-  add(x: number, y: number, z: number, heading: number, strength = 1): void {
-    this.dummy.position.set(x, y + 0.045, z); this.dummy.rotation.set(0, heading, 0); this.dummy.scale.set(strength, 1, 1.0 + (strength > 1 ? 0.2 : 0)); this.dummy.updateMatrix();
+  /** Stamps one mark. `length` is in metres along `heading` (see skidTrail.ts); `strength` widens it. */
+  add(x: number, y: number, z: number, heading: number, strength = 1, length = 0.9): void {
+    this.dummy.position.set(x, y + 0.045, z); this.dummy.rotation.set(0, heading, 0); this.dummy.scale.set(strength, 1, length / 0.9); this.dummy.updateMatrix();
     this.mesh.setMatrixAt(this.head, this.dummy.matrix); this.head = (this.head + 1) % this.count;
     this.mesh.instanceMatrix.needsUpdate = true;
   }
@@ -130,9 +131,20 @@ export class Effects {
     const r = this.rng; this.c.set(hex).multiplyScalar(2.4);
     for (let i = 0; i < n; i++) this.spark.emit(x, y + 0.3, z, dirX * r.range(0.2, 1) * 8 + r.range(-4, 4), r.range(1, 6), dirZ * r.range(0.2, 1) * 8 + r.range(-4, 4), r.range(0.25, 0.6), 0.28, 0.05, this.c, 1, 18, 0.4);
   }
-  boostBurst(x: number, y: number, z: number, vx: number, vz: number, hex: number): void {
+  /** Pad / mini-turbo burst: a bright flash plus a fan of embers thrown out behind the car (was a single particle). */
+  boostBurst(x: number, y: number, z: number, vx: number, vz: number, hex: number, count = 14): void {
     const r = this.rng; this.c.set(hex).multiplyScalar(2.2);
-    this.spark.emit(x, y, z, vx * 0.1 + r.range(-0.5, 0.5), r.range(-0.2, 0.5), vz * 0.1 + r.range(-0.5, 0.5), r.range(0.25, 0.45), 0.55, 0.05, this.c, 0.9, 0, 3);
+    this.spark.emit(x, y, z, vx * 0.1 + r.range(-0.5, 0.5), r.range(-0.2, 0.5), vz * 0.1 + r.range(-0.5, 0.5), r.range(0.25, 0.45), 0.9, 0.05, this.c, 0.9, 0, 3);
+    const sp = Math.hypot(vx, vz) || 1, bx = -vx / sp, bz = -vz / sp; // backwards; (-bz, bx) is sideways
+    for (let i = 0; i < count; i++) {
+      const out = r.range(2, 9), side = r.range(-1, 1) * 5;
+      this.spark.emit(x + r.range(-0.3, 0.3), y + r.range(0, 0.5), z + r.range(-0.3, 0.3), vx * 0.55 + bx * out - bz * side, r.range(0.5, 3.5), vz * 0.55 + bz * out + bx * side, r.range(0.3, 0.6), 0.32, 0.04, this.c, 0.9, 6, 2.2);
+    }
+  }
+  /** One flame particle at an exhaust while boosting; call every ~30 ms per exhaust. Short-lived, so it forms a 2-3 m streak. */
+  boostTrail(x: number, y: number, z: number, vx: number, vz: number, hex: number): void {
+    const r = this.rng; this.c.set(hex).multiplyScalar(2.0);
+    this.spark.emit(x + r.range(-0.08, 0.08), y + r.range(-0.05, 0.05), z + r.range(-0.08, 0.08), vx * 0.82 + r.range(-0.8, 0.8), r.range(-0.1, 0.5), vz * 0.82 + r.range(-0.8, 0.8), r.range(0.22, 0.38), 0.36, 0.05, this.c, 0.85, 0, 2.5);
   }
   confetti(x: number, y: number, z: number, n: number): void {
     const r = this.rng; const hues = [0xff5a4a, 0xffc23a, 0x35d0ff, 0x7cf05a, 0xff5ad0, 0xffffff];

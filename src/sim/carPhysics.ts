@@ -42,7 +42,7 @@ export interface CarInput {
 }
 export const newInput = (): CarInput => ({ throttle: 0, brake: 0, steer: 0, handbrake: false, boost: false });
 
-export type CarEvent = 'driftStart' | 'driftTier' | 'miniTurbo' | 'boostStart' | 'wall' | 'car' | 'cone' | 'barrel' | 'pad' | 'respawn';
+export type CarEvent = 'driftStart' | 'driftTier' | 'miniTurbo' | 'boostStart' | 'wall' | 'scrape' | 'car' | 'cone' | 'barrel' | 'pad' | 'respawn';
 
 export interface CarState {
   id: number;
@@ -61,6 +61,8 @@ export interface CarState {
   offRoad: boolean; onKerb: boolean;
   /** impact strength (m/s) of the last wall hit; decays — used for effects */
   impact: number;
+  /** outward speed (m/s) of the latest light wall scrape, and the cooldown that rate-limits `scrape` events (feedback only) */
+  scrape: number; scrapeTimer: number;
   braking: boolean;
   tq: TrackQuery;
   /** accumulated distance around the lap system: lap = floor(progress / length) + 1 */
@@ -82,7 +84,7 @@ export function createCar(id: number, isPlayer: boolean): CarState {
   return {
     id, isPlayer, x: 0, y: 0, z: 0, px: 0, py: 0, pz: 0, pheading: 0, heading: 0, vx: 0, vz: 0, yawRate: 0, speed: 0, slip: 0, steerVis: 0,
     boostMeter: PHYS.boostMeterStart, boostTimer: 0, boosting: false,
-    drifting: false, driftDir: 0, driftTime: 0, driftTier: 0, offRoad: false, onKerb: false, impact: 0, braking: false,
+    drifting: false, driftDir: 0, driftTime: 0, driftTier: 0, offRoad: false, onKerb: false, impact: 0, scrape: 0, scrapeTimer: 0, braking: false,
     tq: newQuery(), progress: 0, lastS: 0, padCooldown: 0, wrongWay: 0, stuck: 0, lap: 0, finished: false, finishTime: 0, lapTimes: [], lapStart: 0,
     stats: { driftSeconds: 0, hits: 0, boostPads: 0, topSpeed: 0 }, events: [], invulnerable: 0,
   };
@@ -202,6 +204,7 @@ export function stepCar(c: CarState, inp: CarInput, dt: number, locked: boolean)
   if (vf > c.stats.topSpeed) c.stats.topSpeed = vf;
   c.impact = Math.max(0, c.impact - 18 * dt);
   if (c.invulnerable > 0) c.invulnerable -= dt;
+  if (c.scrapeTimer > 0) c.scrapeTimer -= dt;
 }
 
 /** Keeps a car inside the barriers, updates surface flags and height. Returns nothing; sets `impact` and emits events. */
@@ -228,7 +231,9 @@ export function collideTrack(c: CarState, track: Track): void {
       const hd = angleDiff(c.heading, Math.atan2(q.tx, q.tz));
       const along = Math.abs(hd) < Math.PI / 2 ? hd : angleDiff(c.heading, Math.atan2(-q.tx, -q.tz));
       c.heading += clamp(along, -0.5, 0.5) * clamp(vn / 12, 0, 1) * 0.35;
-      if (vn > 3 && c.invulnerable <= 0) { c.impact = Math.max(c.impact, vn); c.stats.hits++; emit(c, 'wall'); c.invulnerable = 0.25; }
+      if (vn > 3 && c.invulnerable <= 0) { c.impact = Math.max(c.impact, vn); c.stats.hits++; emit(c, 'wall'); c.invulnerable = 0.25; c.scrapeTimer = Math.max(c.scrapeTimer, 0.2); }
+      // lighter contact still costs speed (above), so it must be seen and heard: rate-limited, player-only event, no physics change
+      else if (vn > 0.5 && c.scrapeTimer <= 0) { c.scrape = vn; c.scrapeTimer = 0.12; emit(c, 'scrape'); }
       if (c.drifting && vn > 6) c.driftTier = 0;
     }
   }

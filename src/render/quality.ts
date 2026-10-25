@@ -20,7 +20,7 @@ export interface TierSettings {
 export const TIERS: Readonly<Record<Tier, TierSettings>> = {
   high: { maxPixelRatio: 2, shadowMap: 2048, shadowRange: 70, bloom: true, msaa: true, scenery: 1, tufts: 1, particles: 1, cloudOctaves: 5, skidMarks: 900 },
   medium: { maxPixelRatio: 1.5, shadowMap: 1024, shadowRange: 56, bloom: false, msaa: true, scenery: 0.7, tufts: 0.45, particles: 0.7, cloudOctaves: 4, skidMarks: 500 },
-  low: { maxPixelRatio: 1.1, shadowMap: 512, shadowRange: 44, bloom: false, msaa: false, scenery: 0.45, tufts: 0, particles: 0.45, cloudOctaves: 3, skidMarks: 240 },
+  low: { maxPixelRatio: 1.1, shadowMap: 512, shadowRange: 44, bloom: false, msaa: false, scenery: 0.45, tufts: 0, particles: 0.45, cloudOctaves: 3, skidMarks: 360 },
 };
 
 export interface DeviceHints { touch: boolean; cores?: number; memoryGb?: number; devicePixelRatio?: number; width: number; height: number }

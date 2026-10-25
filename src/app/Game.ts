@@ -7,6 +7,7 @@ import { loadAsphalt } from '../render/pbr';
 import { CarAssets, type CarLod } from '../render/carAssets';
 import { CameraRig, type FocusState } from '../render/cameraRig';
 import { Effects } from '../render/effects';
+import { SkidTrail } from '../render/skidTrail';
 import { Landmarks } from '../render/landmarks';
 import { Obstacles, Scenery } from '../render/scenery';
 import { PerfGovernor, TIERS, initialTier, type Tier } from '../render/quality';
@@ -50,7 +51,8 @@ export class Game {
   private paused = false;
   private time = 0; private last = 0; private alpha = 0;
   private readonly snaps: CarSnapshot[] = [];
-  private readonly smokeT: number[] = []; private readonly skidT: number[] = [];
+  private boostT = 0;
+  private readonly smokeT: number[] = []; private readonly skidTrails: SkidTrail[] = [];
   private readonly reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private touch = false;
   private fatalShown = false;
@@ -92,7 +94,7 @@ export class Game {
     for (let i = 0; i < RACE_CARS; i++) {
       const v = new CarView(this.assets); v.setVisible(false); this.world.scene.add(v.root); this.views.push(v);
       this.snaps.push({ x: 0, y: 0, z: 0, heading: 0, speed: 0, slip: 0, yawRate: 0, steer: 0, braking: false, boosting: false, drifting: false, driftTier: 0, impact: 0, onKerb: false, offRoad: false, grade: 0 });
-      this.smokeT.push(0); this.skidT.push(0);
+      this.smokeT.push(0); this.skidTrails.push(new SkidTrail(), new SkidTrail());
     }
     this.effects = new Effects(this.world.scene, TIERS[this.tier].particles, TIERS[this.tier].skidMarks);
     // optional: Poly Haven sunset HDRI as the car-only reflection environment (`?hdri`)
@@ -365,11 +367,12 @@ export class Game {
     const s = this.snaps[0];
     switch (e) {
       case 'driftTier': this.audio.driftTier(p.driftTier); this.maxTier = Math.max(this.maxTier, p.driftTier); break;
-      case 'miniTurbo': this.audio.miniTurbo(Math.max(0, this.maxTier - 1)); this.effects.boostBurst(s.x, s.y + 0.6, s.z, p.vx, p.vz, [0x35a0ff, 0xff9a3a, 0xc060ff][clamp(this.maxTier - 1, 0, 2)]); this.ui.hud.toast('Mini-turbo!', 'cyan'); this.maxTier = 0; break;
+      case 'miniTurbo': this.rig.kick(0.55 + 0.15 * clamp(this.maxTier - 1, 0, 2)); this.audio.miniTurbo(Math.max(0, this.maxTier - 1)); this.effects.boostBurst(s.x, s.y + 0.6, s.z, p.vx, p.vz, [0x35a0ff, 0xff9a3a, 0xc060ff][clamp(this.maxTier - 1, 0, 2)]); this.ui.hud.toast('Mini-turbo!', 'cyan'); this.maxTier = 0; break;
       case 'driftStart': this.maxTier = 0; break;
-      case 'boostStart': this.audio.boost(); break;
-      case 'pad': this.audio.pad(); this.ui.hud.toast('Boost pad!', 'gold'); this.effects.boostBurst(s.x, s.y + 0.5, s.z, p.vx, p.vz, 0xffc23a); break;
+      case 'boostStart': this.rig.kick(1); this.audio.boost(); break;
+      case 'pad': this.rig.kick(0.7); this.audio.pad(); this.ui.hud.toast('Boost pad!', 'gold'); this.effects.boostBurst(s.x, s.y + 0.5, s.z, p.vx, p.vz, 0xffc23a); break;
       case 'wall': { this.audio.hit(p.impact); const side = Math.sign(p.tq.d) || 1; this.effects.sparks(s.x + p.tq.tz * side * 1.1, s.y + 0.4, s.z - p.tq.tx * side * 1.1, p.tq.tx, p.tq.tz, 14 + Math.min(20, p.impact)); break; }
+      case 'scrape': { this.audio.scrape(p.scrape); const side = Math.sign(p.tq.d) || 1; this.effects.sparks(s.x + p.tq.tz * side * 1.1, s.y + 0.4, s.z - p.tq.tx * side * 1.1, p.tq.tx, p.tq.tz, 3 + Math.min(5, Math.round(p.scrape * 2))); break; }
       case 'car': case 'barrel': this.audio.hit(p.impact); this.effects.sparks(s.x, s.y + 0.5, s.z, Math.sin(s.heading), Math.cos(s.heading), 10); break;
       case 'cone': this.audio.cone(); break;
       case 'respawn': this.ui.hud.toast('Back on track', 'good'); break;
@@ -383,17 +386,32 @@ export class Game {
       const c = sim.cars[i], s = this.snaps[i], v = this.views[i];
       v.update(s, dt, this.time);
       // tyre smoke + skid marks + off-road dust
-      if (c.drifting && !c.offRoad && Math.abs(c.speed) > 12) {
-        this.smokeT[i] -= dt; this.skidT[i] -= dt;
+      const skidding = c.drifting && !c.offRoad && Math.abs(c.speed) > 12;
+      if (skidding) {
+        this.smokeT[i] -= dt;
         for (const side of [0, 1] as const) {
           v.rearWheelWorld(side, tmpV);
           if (this.smokeT[i] <= 0) this.effects.tyreSmoke(tmpV.x, tmpV.y + 0.1, tmpV.z, c.vx, c.vz, 0.6 + c.driftTier * 0.15);
-          if (this.skidT[i] <= 0) this.effects.skids.add(tmpV.x, tmpV.y + 0.02, tmpV.z, s.heading + clamp(c.slip * 0.02, -0.4, 0.4), 1);
+          // marks follow the wheel's real path (continuous line, oriented along travel), one trail per rear wheel
+          const seg = this.skidTrails[i * 2 + side].update(tmpV.x, tmpV.z);
+          if (seg) this.effects.skids.add(seg.x, tmpV.y + 0.02, seg.z, seg.heading, 1, seg.length);
         }
-        if (this.smokeT[i] <= 0) this.smokeT[i] = 0.035; if (this.skidT[i] <= 0) this.skidT[i] = 0.05;
-      } else if (c.offRoad && Math.abs(c.speed) > 10 && i <= 5) {
-        this.smokeT[i] -= dt;
-        if (this.smokeT[i] <= 0) { this.smokeT[i] = 0.06; v.rearWheelWorld(0, tmpV); this.effects.tyreSmoke(tmpV.x, tmpV.y + 0.1, tmpV.z, c.vx, c.vz, 0.5, true); }
+        if (this.smokeT[i] <= 0) this.smokeT[i] = 0.035;
+      } else {
+        this.skidTrails[i * 2].reset(); this.skidTrails[i * 2 + 1].reset();
+        if (i === 0 && c.braking && c.speed > 28 && !c.offRoad && !c.drifting) {
+          // hard braking from speed: a light puff from the rear tyres (player only, ~14 puffs/s)
+          this.smokeT[i] -= dt;
+          if (this.smokeT[i] <= 0) { this.smokeT[i] = 0.07; v.rearWheelWorld(this.time * 12 % 2 < 1 ? 0 : 1, tmpV); this.effects.tyreSmoke(tmpV.x, tmpV.y + 0.1, tmpV.z, c.vx, c.vz, 0.35); }
+        } else if (c.offRoad && Math.abs(c.speed) > 10 && i <= 5) {
+          this.smokeT[i] -= dt;
+          if (this.smokeT[i] <= 0) { this.smokeT[i] = 0.06; v.rearWheelWorld(0, tmpV); this.effects.tyreSmoke(tmpV.x, tmpV.y + 0.1, tmpV.z, c.vx, c.vz, 0.5, true); }
+        }
+      }
+      if (i === 0 && s.boosting) {
+        // exhaust flames: ~35 particles/s per exhaust (player only; rivals keep the cheap mesh flames)
+        this.boostT -= dt;
+        if (this.boostT <= 0) { this.boostT = 0.028; for (let k = 0; k < v.exhaustCount; k++) { v.exhaustWorld(k, tmpV); this.effects.boostTrail(tmpV.x, tmpV.y, tmpV.z, c.vx, c.vz, 0x58b8ff); } }
       }
       const paint = i === 0 ? findPaint(this.save.data.loadouts[this.save.data.selected].paint) : findPaint(RIVALS[(i - 1) % RIVALS.length].loadout.paint);
       dots.push({ x: s.x, z: s.z, color: hex(paint.color), player: i === 0 });
