@@ -65,11 +65,11 @@ export function makeBarrier(): Texture {
   // u: 0..1 across the extruded profile (road face, painted rail, top, back); v: 12 m of wall per tile (three 4 m panels)
   const W = 128, Hh = 384, { c, g } = cv(W, Hh);
   const rng = new Rng(5);
-  g.fillStyle = '#bcc0c8'; g.fillRect(0, 0, W, Hh);
+  g.fillStyle = '#a4a9b4'; g.fillRect(0, 0, W, Hh);
   for (let i = 0; i < 2600; i++) { const v = rng.range(0, 1); g.fillStyle = v < 0.5 ? `rgba(60,56,50,${rng.range(0.03, 0.09)})` : `rgba(255,250,240,${rng.range(0.03, 0.08)})`; g.fillRect(rng.range(0, W), rng.range(0, Hh), rng.range(1, 4), rng.range(1, 4)); }
   // painted rail on the upper face (second quarter): alternating red / off-white blocks
-  g.fillStyle = '#e2e4e8'; g.fillRect(W * 0.25, 0, W * 0.25, Hh);
-  g.fillStyle = '#c4452f'; g.fillRect(W * 0.25, Hh * 0.5, W * 0.25, Hh * 0.5);
+  g.fillStyle = '#eceef2'; g.fillRect(W * 0.25, 0, W * 0.25, Hh);
+  g.fillStyle = '#c93a2a'; g.fillRect(W * 0.25, Hh * 0.5, W * 0.25, Hh * 0.5);
   g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(W * 0.25, Hh * 0.5 - 2, W * 0.25, 4); g.fillRect(W * 0.25, Hh - 2, W * 0.25, 2);
   // panel joints every 4 m and a grimy foot
   g.fillStyle = 'rgba(30,28,26,0.38)'; for (let k = 0; k < 3; k++) g.fillRect(0, k * (Hh / 3) - 1, W, 3);

@@ -170,9 +170,9 @@ export function scrubMesh(seed: number, lod: 0 | 1): BufferGeometry {
   const n = lod ? 2 : 6;
   for (let i = 0; i < n; i++) {
     const a = i * 2.2 + rng.range(-0.3, 0.3), rad = i === 0 ? 0 : rng.range(0.25, 0.7), r = rng.range(0.28, 0.5);
-    b.add(lobe(r, seed * 7 + i, 0, 0.8), (x, y, z) => leafColor(x, y, z, 0, 0.3, 0, 0.7, 0x4a5f2c, 0xa6b062, 0.5), xform(Math.cos(a) * rad, r * 0.55, Math.sin(a) * rad, 1, 0.7, 1));
+    b.add(lobe(r, seed * 7 + i, 0, 0.8), (x, y, z) => leafColor(x, y, z, 0, 0.3, 0, 0.7, 0x2f5a38, 0x6b9a58, 0.5), xform(Math.cos(a) * rad, r * 0.55, Math.sin(a) * rad, 1, 0.7, 1));
   }
-  if (!lod) for (let i = 0; i < 3; i++) b.add(new IcosahedronGeometry(0.07, 0), 0xf6d34a, xform(rng.range(-0.5, 0.5), rng.range(0.35, 0.6), rng.range(-0.5, 0.5)));
+  if (!lod) for (let i = 0; i < 3; i++) b.add(new IcosahedronGeometry(0.07, 0), 0xfff0b0, xform(rng.range(-0.5, 0.5), rng.range(0.35, 0.6), rng.range(-0.5, 0.5)));
   return b.build();
 }
 

@@ -42,7 +42,7 @@ export class World {
     this.sun = new DirectionalLight(0xffa55a, 3.6);
     this.sun.castShadow = true;
     scene.add(this.sun, this.sun.target);
-    scene.add(new HemisphereLight(0x9fb0ff, 0xe8a077, 1.15));
+    scene.add(new HemisphereLight(0xb4c0ea, 0xe0a47c, 1.35));
 
     this.sky = new Sky(TIERS[tier].cloudOctaves);
     this.terrain = buildTerrain(track);

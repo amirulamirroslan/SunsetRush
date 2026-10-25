@@ -18,16 +18,19 @@ export class Gfx {
   private bloom: UnrealBloomPass | null = null;
   private width = 1; private height = 1;
   private readonly light: { sun: DirectionalLight | null } = { sun: null };
+  private readonly grade: HTMLDivElement;
 
   constructor(host: HTMLElement, tier: Tier, pixelRatio: number) {
     this.tier = tier;
     this.pixelRatio = Math.min(pixelRatio, TIERS[tier].maxPixelRatio);
     this.renderer = new WebGLRenderer({ antialias: tier !== 'low', powerPreference: 'high-performance', alpha: false, stencil: false });
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMappingExposure = 1.06;
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = PCFSoftShadowMap;
     this.renderer.domElement.className = 'gl-canvas';
     host.appendChild(this.renderer.domElement);
+    // cheap screen-space grade (works on every tier): vignette + warm lift, drawn by the compositor, not the GPU scene pass
+    this.grade = document.createElement('div'); this.grade.className = 'grade'; host.appendChild(this.grade);
     setMaxAnisotropy(Math.min(8, this.renderer.capabilities.getMaxAnisotropy()));
     this.applyTier();
   }
@@ -81,5 +84,5 @@ export class Gfx {
   /** Pixels per world unit at distance 1 (for point-sprite sizing). */
   get pointScale(): number { return (this.height * this.pixelRatio) / 2; }
 
-  dispose(): void { this.composer?.dispose(); this.bloom?.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); }
+  dispose(): void { this.composer?.dispose(); this.bloom?.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.grade.remove(); }
 }

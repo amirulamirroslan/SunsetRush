@@ -25,7 +25,7 @@ const WHEEL_KEYS = ['FL', 'FR', 'RL', 'RR'] as const;
 
 const shared = {
   blob: null as CanvasTexture | null,
-  rim: new MeshStandardMaterial({ color: 0xdfe3ea, roughness: 0.22, metalness: 0.95 }),
+  rim: new MeshStandardMaterial({ color: 0xc8ccd6, roughness: 0.18, metalness: 1.0, envMapIntensity: 1.6 }),
   rimDark: new MeshStandardMaterial({ color: 0x2a2d36, roughness: 0.45, metalness: 0.8 }),
   trim: new MeshStandardMaterial({ color: 0x1b1d25, roughness: 0.6, metalness: 0.2 }),
   glass: new MeshPhysicalMaterial({ color: 0x04070d, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.8, transparent: true, opacity: 0.86 }),
@@ -38,7 +38,7 @@ function rimGeometry(style: WheelId): { rim: BufferGeometry; glow?: BufferGeomet
   const hit = shared.rimGeo.get(style); if (hit) return hit;
   const R = 0.315, face = CAR.wheelW / 2 - 0.04;
   const parts: BufferGeometry[] = [];
-  const disc = new CylinderGeometry(R * 0.97, R * 0.97, 0.03, 40); disc.rotateZ(Math.PI / 2); disc.translate(face - 0.045, 0, 0); parts.push(disc);
+  const disc = new CylinderGeometry(R * 0.97, R * 0.97, 0.03, 40); disc.rotateZ(Math.PI / 2); disc.translate(face - 0.045, 0, 0); if (style !== 'classic') parts.push(disc); else disc.dispose();
   const hub = new CylinderGeometry(R * 0.16, R * 0.16, 0.07, 18); hub.rotateZ(Math.PI / 2); hub.translate(face, 0, 0); parts.push(hub);
   const lip = new TorusGeometry(R * 0.93, R * 0.045, 10, 40); lip.rotateY(Math.PI / 2); lip.translate(face - 0.01, 0, 0); parts.push(lip);
   const spoke = (len: number, thick: number, wide: number, a: number, twist = 0, off = 0.5): BufferGeometry => {
@@ -47,6 +47,13 @@ function rimGeometry(style: WheelId): { rim: BufferGeometry; glow?: BufferGeomet
   let glow: BufferGeometry | undefined;
   if (style === 'turbine') for (let i = 0; i < 12; i++) parts.push(spoke(R * 0.72, 0.03, R * 0.16, (i / 12) * Math.PI * 2, 0.75, 0.52));
   else if (style === 'mesh') { for (let i = 0; i < 20; i++) parts.push(spoke(R * 0.78, 0.025, R * 0.045, (i / 20) * Math.PI * 2, 0, 0.5)); const r2 = new TorusGeometry(R * 0.5, R * 0.03, 6, 28); r2.rotateY(Math.PI / 2); r2.translate(face - 0.01, 0, 0); parts.push(r2); }
+  else if (style === 'classic') {
+    // forged twin-spoke alloy: five pairs of tapered spokes, deep dish lip, centre-lock hub with lugs
+    for (let i = 0; i < 5; i++) for (const d of [-1, 1]) parts.push(spoke(R * 0.86, 0.045, R * 0.12, (i / 5) * Math.PI * 2 + d * 0.13, d * 0.28, 0.5));
+    const ring = new TorusGeometry(R * 0.46, R * 0.05, 8, 28); ring.rotateY(Math.PI / 2); ring.translate(face - 0.012, 0, 0); parts.push(ring);
+    const cap = new CylinderGeometry(R * 0.2, R * 0.23, 0.05, 20); cap.rotateZ(Math.PI / 2); cap.translate(face + 0.02, 0, 0); parts.push(cap);
+    for (let i = 0; i < 5; i++) { const lug = new CylinderGeometry(R * 0.032, R * 0.032, 0.06, 6); lug.rotateZ(Math.PI / 2); lug.translate(face + 0.05, Math.sin((i / 5) * Math.PI * 2) * R * 0.14, Math.cos((i / 5) * Math.PI * 2) * R * 0.14); parts.push(lug); }
+  }
   else if (style === 'neon') { for (let i = 0; i < 5; i++) parts.push(spoke(R * 0.6, 0.04, R * 0.1, (i / 5) * Math.PI * 2, 0, 0.38)); glow = new TorusGeometry(R * 0.72, R * 0.05, 8, 40); glow.rotateY(Math.PI / 2); glow.translate(face + 0.0, 0, 0); }
   const rim = mergeGeometries(parts)!; parts.forEach(p => p.dispose());
   const out = { rim, glow }; shared.rimGeo.set(style, out); return out;
@@ -117,7 +124,7 @@ export class CarView {
     const paint = findPaint(loadout.paint), fin = findFinish(loadout.finish);
     const m = this.paintMain!, a = this.paintAccent!;
     m.color.set(paint.color); m.metalness = fin.metalness; m.roughness = fin.roughness; m.clearcoat = fin.clearcoat; m.clearcoatRoughness = 0.05;
-    a.color.set(new Color(0x0b0d12).lerp(new Color(paint.color), 0.1));
+    a.color.set(new Color(0x0b0d12).lerp(new Color(paint.color), 0.42));
     this.neonMat.color.set(new Color(paint.accent).lerp(new Color(0x35e6ff), 0.4));
     this.applyWheels(); this.buildSpoiler(); this.buildDecals();
   }
@@ -155,8 +162,8 @@ export class CarView {
     const find = (n: string): Material | null => { let r: Material | null = null; model.traverse(o => { const mm = (o as Mesh).material as Material | undefined; if (!r && mm && mm.name === n) r = mm; }); return r; };
     this.paintMain = find('paintMain') as MeshPhysicalMaterial; this.paintAccent = find('paintAccent') as MeshPhysicalMaterial;
     this.brake = find('brakelight') as MeshStandardMaterial; this.head = find('headlight') as MeshStandardMaterial;
-    if (this.head) this.head.emissiveIntensity = 2.2;
-    for (const mat of [this.paintMain, this.paintAccent]) { mat.envMapIntensity = 1.15; mat.side = 0; }
+    if (this.head) this.head.emissiveIntensity = 4.0;
+    for (const mat of [this.paintMain, this.paintAccent]) { mat.envMapIntensity = 1.4; mat.side = 0; }
     this.applyEnv();
     this.tilt.add(model);
     // wheel pivots: steer (pivot) -> spin
@@ -182,8 +189,8 @@ export class CarView {
     const style = this.loadout!.wheels;
     for (const w of this.wheels) {
       for (const x of [...w.spin.children]) if (x.userData.custom) { w.spin.remove(x); }
-      if (w.rim) w.rim.visible = style === 'classic';
-      if (style !== 'classic') {
+      if (w.rim) w.rim.visible = false;
+      {
         const g = rimGeometry(style); const side = w.key[1] === 'L' ? 1 : -1;
         const flip = new Group(); flip.userData.custom = true; if (side === -1) flip.rotation.y = Math.PI;
         flip.add(new Mesh(g.rim, style === 'neon' ? shared.rimDark : shared.rim));
@@ -273,7 +280,7 @@ export class CarView {
       w.spin.rotation.x = this.spin;
       if (w.front) w.pivot.rotation.y = s.steer * 0.5;
     }
-    if (this.brake) this.brake.emissiveIntensity = s.braking ? 6 : 1.4;
+    if (this.brake) this.brake.emissiveIntensity = s.braking ? 8 : 2.6;
     this.flick += dt * 40;
     const on = s.boosting;
     for (let i = 0; i < this.flames.length; i++) {

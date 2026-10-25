@@ -48,3 +48,9 @@ node tools/measure.mjs http://127.0.0.1:4173/ low,medium 640 360 0,9 # draw call
 Pick **#2 (performance / draw calls)** or the rest of #1 (see NEXT_CLAUDE_PROMPT.md). Work in small, tested milestones; commit and push to the branch after each; update this file before ending.
 
 Smoke test: `node tools/snap.mjs … low 960 540 0,9,20` drove a race to ~30 s race time in headless Chromium (software GL, low tier) with **0 console/page errors** (verified this session). Screenshots were not reviewed for this AI-only change.
+
+## Visual redesign pass 1 (local commit, not yet pushed at time of writing)
+Priority changed: visual quality of car and world (gameplay features paused). Audit ranking: 1 car body/wheels, 2 vegetation variety, 3 road/trackside, 4 mountain backdrop, 5 lighting/grade, 6 ocean.
+Done (procedural, no new external assets): open twin-spoke alloy rims replace the model's star rims (`carModel.ts`), accent panels follow paint, brighter head/tail lights and reflections, scrub recoloured green (`vegetation.ts`), cooler higher-contrast barrier texture (`textures.ts`), brighter asphalt tint (`roadMesh.ts`), warmer-neutral hemisphere fill (`world.ts`), exposure 1.06 + CSS vignette/grade overlay (`gfx.ts`, `styles.css`).
+Verified: tsc clean, 42/42 tests, build OK, before/after screenshots (software GL; garage at high tier, race at medium). Not verified: real GPU/phone fps, draw calls after the change.
+Not done: car body shape, tree/palm variety, mountain backdrop texture, ocean edge, fence/tyre-wall models, unexplained white sky wedge (upper right in race frames). Asset candidates researched (Quaternius Stylized Nature MegaKit CC0, Kenney Racing Kit CC0, Poly Haven `cliff_side`/`coast_sand_rocks_02` CC0) but none downloaded or integrated; sandbox cannot reach those hosts.
