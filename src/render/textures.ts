@@ -194,3 +194,66 @@ export function makeRoadMarkings(): Texture {
   g.putImageData(img, 0, 0);
   return finish(c, { repeatV: true });
 }
+
+/**
+ * Road wear overlay (alpha map for a near-black, slightly glossy layer): worn rubber in the two wheel tracks, grime along the edges,
+ * resurfaced patches with sealed outlines, crack lines and oil drips. u across the road (0..1), v along it, one tile = 24 m; tiles seamlessly in v.
+ */
+export function makeRoadWear(): Texture {
+  const W = 256, H = 512, TAU = Math.PI * 2;
+  const { c, g } = cv(W, H);
+  const img = g.createImageData(W, H);
+  // v-periodic noise: walk a circle in noise space so the tile joins itself
+  const pn = (u: number, v: number, sc: number, o: number): number => fbm2(u * sc + Math.cos(v * TAU) * sc * 0.8 + o, Math.sin(v * TAU) * sc * 0.8 + o * 0.5, 3);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = x / W, v = y / H;
+    const mott = pn(u * 3, v, 2.2, 5);
+    const track = (cx: number): number => Math.exp(-Math.pow((u - cx) / 0.055, 2));
+    const wheel = (track(0.3) + track(0.7)) * (0.22 + 0.2 * mott);
+    const between = Math.exp(-Math.pow((u - 0.5) / 0.09, 2)) * 0.05 * mott;
+    const edge = (Math.pow(Math.max(0, 0.1 - u) / 0.1, 1.6) + Math.pow(Math.max(0, u - 0.9) / 0.1, 1.6)) * (0.25 + 0.2 * pn(u, v, 6, 9));
+    const grain = (noise2(x * 0.9, y * 0.9) - 0.5) * 0.04;
+    const a = Math.max(0, Math.min(1, wheel + between + edge + grain));
+    const i = (y * W + x) * 4; const b = Math.round(a * 255);
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = b; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const rng = new Rng(404);
+  // resurfaced patches: slightly darker rectangles with a harder, sealed edge
+  for (let k = 0; k < 5; k++) {
+    const w = rng.range(0.16, 0.38) * W, h = rng.range(0.05, 0.12) * H, x = rng.range(0.05, 0.9) * W - w / 2, y = rng.range(0, 1) * H;
+    for (const oy of [0, -H, H]) {
+      g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(x, y + oy, w, h);
+      g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.6; g.strokeRect(x, y + oy, w, h);
+    }
+  }
+  // sealed cracks running across the road
+  g.lineCap = 'round';
+  for (let k = 0; k < 4; k++) {
+    const y0 = rng.range(0, 1) * H, x0 = rng.range(0.0, 0.6) * W, len = rng.range(0.25, 0.7) * W; let x = x0, y = y0;
+    g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = rng.range(1.1, 2);
+    g.beginPath(); g.moveTo(x, y);
+    for (let s = 0; s < 14; s++) { x += len / 14; y += rng.range(-5, 5); g.lineTo(x, y); }
+    g.stroke();
+  }
+  // oil drips in the wheel tracks
+  for (let k = 0; k < 9; k++) {
+    const x = (rng.next() < 0.5 ? 0.3 : 0.7) * W + rng.range(-14, 14), y = rng.range(0, 1) * H, r = rng.range(4, 11);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  }
+  return finish(c, { repeatV: true, srgb: false });
+}
+
+/** Braking-distance boards: three cells (1, 2, 3 red bars on white), 128 x 256 each. */
+export function makeBrakeBoards(): Texture {
+  const { c, g } = cv(384, 256);
+  for (let n = 1; n <= 3; n++) {
+    const x0 = (n - 1) * 128;
+    g.fillStyle = '#f6f2ea'; g.fillRect(x0, 0, 128, 256);
+    g.fillStyle = '#d4272b';
+    for (let k = 0; k < n; k++) { g.beginPath(); const bx = x0 + 128 - 26 - k * 34; g.moveTo(bx + 24, 0); g.lineTo(bx + 24 - 42, 256); g.lineTo(bx - 18, 256); g.lineTo(bx + 24 - 24, 0); g.closePath(); g.fill(); }
+    g.strokeStyle = '#1b1d28'; g.lineWidth = 8; g.strokeRect(x0 + 4, 4, 120, 248);
+  }
+  return finish(c, {});
+}

@@ -32,8 +32,9 @@ export class Menu {
     clear(this.soundBtn); this.soundBtn.append(icon(d.settings.sound ? 'sound' : 'mute'));
     const v = VEHICLES.find(x => x.id === d.selected)!;
     clear(this.carName); this.carName.append(el('span', { class: 'label' }, ['Your car']), el('b', {}, [v.name]));
+    this.root.classList.toggle('setup-open', this.setupOpen);
     clear(this.col);
-    this.col.append(el('h1', { class: 'logo title' }, ['Sunset', el('br'), 'Rush', el('small', {}, ['Coral Cove Circuit'])]));
+    this.col.append(el('h1', { class: 'logo title' }, ['Sunset', ' ', el('br'), 'Rush', el('small', {}, ['Coral Cove Circuit'])]));
     if (this.setupOpen) this.col.append(this.setup());
     else {
       this.col.append(el('div', { class: 'menu-btns' }, [
@@ -62,7 +63,7 @@ export class Menu {
       el('div', { class: 'row' }, [el('div', { class: 'label' }, ['Laps']), seg([2, 3, 5] as const, s.laps as 2 | 3 | 5, v => String(v), v => this.save.update(d => { d.settings.laps = v; }))]),
       el('div', { class: 'row' }, [el('div', { class: 'label' }, ['Rivals']), seg<Difficulty>(DIFFICULTIES, s.difficulty, v => v[0].toUpperCase() + v.slice(1), v => this.save.update(d => { d.settings.difficulty = v; }))]),
       el('div', { class: 'hint' }, ['Harder rivals pay up to 50% more coins.']),
-      el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, [
+      el('div', { class: 'setup-actions' }, [
         el('button', { class: 'btn good', onclick: this.a.race }, [icon('flag'), 'Start race']),
         el('button', { class: 'btn ghost small', onclick: () => { this.setupOpen = false; this.render(); } }, ['Back']),
       ]),

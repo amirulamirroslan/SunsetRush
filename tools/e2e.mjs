@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const base = process.argv[2] ?? 'http://localhost:4173/';
 const out = process.argv[3] ?? 'shots';
-const chromePath = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const chromePath = process.env.CHROME_PATH ?? (process.env.CHROME_PATH_DEFAULT ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome');
 fs.mkdirSync(out, { recursive: true });
 const results = [];
 const errors = [];

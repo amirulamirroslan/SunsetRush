@@ -21,7 +21,24 @@ export function naturalHeight(x: number, z: number): number {
   const px = x - ISLAND.peakX, pz = z - ISLAND.peakZ;
   const peak = 46 * Math.exp(-(px * px + pz * pz) / (2 * 80 * 80));
   const ridge = 10 * smoothstep(0.55, 0.85, fbm2(x * 0.012 - 9, z * 0.012 + 2, 3)) * land;
-  return base + hills + peak * (0.4 + 0.6 * land) + ridge;
+  return base + hills + peak * (0.4 + 0.6 * land) + ridge + reliefDetail(x, z, land, hills + ridge);
+}
+
+/**
+ * Mid-frequency relief on top of the broad hills: eroded spurs and gullies (ridged noise), knolls and small benches.
+ * The 6 m terrain grid can resolve wavelengths down to ~35 m, so this is what gives hillsides a believable silhouette
+ * instead of one smooth slope. It fades out toward the coast (beaches stay flat) and is flattened near the road by `groundHeight`.
+ */
+function reliefDetail(x: number, z: number, land: number, broad: number): number {
+  const inland = smoothstep(0.55, 0.95, land);
+  if (inland <= 0) return 0;
+  const rid = (u: number, v: number, oct: number): number => 1 - Math.abs(fbm2(u, v, oct) * 2 - 1);
+  // gullies run down-slope: stretch the noise a little so the ridges read as spurs, not blobs
+  const spurs = Math.pow(rid(x * 0.021 + 17, z * 0.017 - 31, 3), 2.2) - 0.35;
+  const knolls = fbm2(x * 0.05 + 5, z * 0.05 + 9, 3) - 0.5;
+  const bench = Math.sin(broad * 0.55 + fbm2(x * 0.02, z * 0.02, 2) * 4) * 0.5;
+  const amp = 0.55 + 0.45 * smoothstep(2, 16, broad);   // taller hills get more relief
+  return (spurs * 8.5 + knolls * 5.5 + bench * 0.9) * inland * amp;
 }
 
 const q = newQuery();

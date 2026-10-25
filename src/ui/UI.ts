@@ -55,10 +55,10 @@ export class UI {
     }, () => this.modal.hide()), onClose);
   }
   openHelp(): void { this.modal.show(helpDialog(() => this.modal.hide(), this.touch)); }
-  openPause(onClose: () => void): void {
+  openPause(onClose: () => void, status?: string): void {
     this.modal.show(pauseDialog({
       resume: () => this.modal.hide(), restart: () => { this.modal.hide(); this.a.restart(); },
-      settings: () => this.openSettings(() => this.openPause(onClose)), quit: () => { this.modal.hide(); this.a.quit(); },
-    }), onClose);
+      settings: () => this.openSettings(() => this.openPause(onClose, status)), quit: () => { this.modal.hide(); this.a.quit(); },
+    }, status), onClose);
   }
 }

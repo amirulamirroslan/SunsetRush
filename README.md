@@ -34,12 +34,13 @@ Holding a drift charges a mini-turbo (blue, orange, purple tiers); release to fi
 
 ```
 src/sim/      pure simulation (no DOM/three): track, car physics, AI, race rules, rewards  (unit tested)
-src/render/  three.js: sky/ocean shaders, terrain, road, scenery, landmarks, procedural cars, effects, camera rig, quality tiers
+src/render/  three.js (trackside.ts = overpasses, braking boards, marshal posts): sky/ocean shaders, terrain, road, scenery, landmarks, procedural cars, effects, camera rig, quality tiers
 src/ui/      DOM + CSS screens: menu, garage, HUD (+touch controls), results, dialogs, SVG icon set
 src/save/    sanitising localStorage save with memory fallback
 src/data/    garage catalogue (all cosmetic) and rival drivers
 src/input/ src/audio/   keyboard+touch input, WebAudio synth sound
 src/app/Game.ts         wires everything together
+tools/snap.mjs, screens.mjs  screenshots of world frames / UI screens at chosen viewports
 tools/e2e.mjs           Playwright flow check with desktop + mobile screenshots
 ```
 

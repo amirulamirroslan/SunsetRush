@@ -6,7 +6,7 @@ import { fbm2 } from '../sim/noise';
 import { BARRIER_FACE } from '../sim/carPhysics';
 import type { Track } from '../sim/Track';
 import type { AsphaltPbr } from './pbr';
-import { makeAsphalt, makeRoadMarkings, makeBarrier, makeChecker, makeChevron, makeKerb, makeShoulder } from './textures';
+import { makeAsphalt, makeRoadMarkings, makeRoadWear, makeBarrier, makeChecker, makeChevron, makeKerb, makeShoulder } from './textures';
 
 export interface RoadMeshes {
   group: Group;
@@ -152,6 +152,14 @@ export function buildRoad(track: Track, pads: readonly number[], asphalt?: Aspha
       keep(new MeshStandardMaterial({ map, bumpMap: bump, bumpScale: 1.2, roughness: 0.86, metalness: 0.02, vertexColors: true })));
   }
   road.receiveShadow = true; group.add(road);
+
+  // wear layer: rubbered wheel tracks, edge grime, resurfaced patches, sealed cracks and oil drips (one extra draw call)
+  {
+    const wearTex = keep(makeRoadWear());
+    const wear = new Mesh(keep(ribbon(track, { latA: -hw, latB: hw, yOff: 0.006, vScale: 24, uRepeat: 1 })),
+      keep(new MeshStandardMaterial({ color: 0x07070a, alphaMap: wearTex, transparent: true, opacity: 0.85, depthWrite: false, roughness: 0.5, metalness: 0, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })));
+    wear.receiveShadow = true; wear.renderOrder = 0; group.add(wear);
+  }
 
   const kerbTex = keep(makeKerb());
   const kerbMat = keep(new MeshStandardMaterial({ map: kerbTex, roughness: 0.7 }));
