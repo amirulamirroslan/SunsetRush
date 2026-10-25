@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1230" />
+  <meta name="description" content="Sunset Rush: a 3D arcade drift-racing game for the browser. Race the Coral Cove Circuit, earn coins and customise your car." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="./fonts/barlow-condensed-latin-800-italic.woff2" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="./fonts/barlow-latin-500-normal.woff2" />
+  <title>Sunset Rush</title>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="loadbox">
+      <h1 class="logo title">Sunset<br />Rush<small>Coral Cove Circuit</small></h1>
+      <div class="bar"><i></i></div>
+      <div class="loadlabel hint">Loading</div>
+    </div>
+  </div>
+  <div id="fatal" role="alert">
+    <div class="loadbox">
+      <h1 class="title" style="margin:0 0 10px">Can't start the game</h1>
+      <p class="hint" style="font-size:16px">Something went wrong.</p>
+      <button class="btn" onclick="location.reload()">Reload</button>
+    </div>
+  </div>
+  <noscript><p style="color:#fff;padding:24px">Sunset Rush needs JavaScript.</p></noscript>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
