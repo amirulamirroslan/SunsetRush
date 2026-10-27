@@ -6,3 +6,6 @@ Confirm the baseline yourself: npm ci && npm run typecheck && npm test && npm ru
 Do not redo completed work (terrain relief, 4-range backdrop + mist, new vegetation types, road wear, overpasses/braking boards/marshal posts, UI polish). Keep cars, physics, camera, controls, garage layout.
 First: re-capture the 667x375 results/setup screens and a high-tier frame, run tools/e2e.mjs with CHROME_PATH set, then address HANDOVER.md "Next steps". Never claim something is verified unless you ran it. Finish with a new checkpoint ZIP and updated HANDOVER.md.
 ```
+
+## Addendum: car revamp (main only)
+Work on `main` only (no branches/merges/cherry-picks/resets). Read HANDOVER.md "Car Visual Quality Revamp". Do not use Spectral GT RS. Do not copy `carModel.ts` from the dev branch without owner approval. Candidate replacement GLBs must be verified (files + commercial-use licence) and judged from the chase camera with `tools/rearshot.mjs` before integration.

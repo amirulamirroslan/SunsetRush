@@ -74,3 +74,8 @@ Only the last medium sample differs (the sample landed at a slightly different r
 - Rocks are much closer to neutral but still read slightly warm on the lit side; trunks measure hue ~30 deg, sat 0.43 (was 22 deg, 0.61).
 - Screenshot timings differ by under a second between runs.
 - Tools added: `tools/backdrop.mjs` (panoramas), `tools/measure.mjs`, `tools/quick.mjs`.
+
+---
+
+## Car visual revamp (on `main`)
+See `HANDOVER.md` "Car Visual Quality Revamp". Summary: procedural tail-light bar, finned diffuser, chrome tailpipes and contact shadow added to `src/render/carModel.ts`; before/after chase-camera crops in `docs/car-revamp/`; asset search for a replacement was blocked (marketplaces unreachable), so no model or licence was added. Spectral GT RS not used.

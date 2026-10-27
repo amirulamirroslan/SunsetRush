@@ -61,3 +61,46 @@ Verified: tsc clean, 54/54 tests, build OK (main chunk 817.16 kB). Camera chase 
 Not verified: feel, audio, GPU fps, touch, and the boost/exhaust/scrape visuals on screen (headless browser kept closing).
 Workflow note: for this pass the owner asked for ZIP delivery and no commit/push without explicit approval, which supersedes the "commit and push after each milestone / no ZIP backups" lines above.
 Next candidates (need a playtest): drift economics and tier thresholds, handbrake-without-steer on touch, scrape penalty tuning, HUD boost bar on phones.
+
+---
+
+## Car Visual Quality Revamp (worked on `main`, uncommitted in the working tree)
+
+Owner instruction for this task: work on `main` only; no new branches, merges, cherry-picks, rebases, resets or force-pushes. `main` is an older line than `sunset-rush-cloud-development`. The only car-related difference is `src/render/carModel.ts` (brighter rim material, new "classic" rim style, accent-panel paint mix, stronger head/brake light and paint reflection values); **that file was NOT copied across**, awaiting owner approval. The improvements below were written fresh against `main`'s own `carModel.ts`.
+
+Spectral GT RS was rejected (open-cockpit buggy look) and was not reapplied; `spectral-integration.patch` is not in this repo.
+
+### Phase 1 — what changed (`src/render/carModel.ts`, new `tools/rearshot.mjs`)
+- Feasibility: the Khronos Car Concept mesh (~13k/25k/55k tris for low/mid/high) is a closed-roof coupe with real glass, so it can support the look; its weakness is a wide, slab-like rear with a thin tail-light strip hidden under the rear glass.
+- Rear surface was measured from the GLB (z of the tail panel by height/width), and a `tailZ()` helper lets added parts hug the curved panel.
+- Added: smoked tail-light lens band with a lit LED bar (brighter when braking, no extra bloom), centre strip; finned dark diffuser with lower lip and a small rear fog lamp; twin chrome tailpipes with dark interiors. `CAR.exhaust` moved to y 0.355 / z -1.985 so boost flames and smoke start at the new pipes (visual only).
+- Added a tighter, darker contact-shadow quad under the body (the soft blob alone left the car looking like it floats). Its effect is subtle.
+- Low LOD gets fewer segments and no diffuser fins. Rear details are merged to 4 meshes per car (lens, LED, carbon/interiors, chrome pipes) plus the contact-shadow quad. Measured with `tools/measure.mjs` (low tier, software GL, 640x360, like-for-like against the original `carModel.ts` built in a temp copy): about **+26 draw calls per frame** (725 -> 751 at the start, 508 -> 534 at 9 s, roughly +4-5%) and about +3k triangles. A first unmerged version cost +41-53 calls, so it was merged. Medium/high tiers and real devices were not measured.
+- Not touched: physics, collisions, camera, rivals, track, HUD, menus, save data.
+- `tools/rearshot.mjs <baseUrl> <outPrefix>` captures the player's rear from the real chase camera with rivals hidden (`ONLY=1` for a single shot). Needs a `dist` build served over HTTP and `CHROME_PATH` set.
+
+### Evidence
+Before/after crops from the real chase camera (headless Chromium, software GL, high tier, 1280x720): `docs/car-revamp/before-rear-chase-crop.png`, `after-rear-chase-crop.png`, `after-rear-chase-full.png`. Only a straight-line frame was reviewed; braking, cornering/drift, boost and mobile/low tier were not visually reviewed.
+
+### Verification
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 9 files, 52/52 pass |
+| `npm run build` | OK |
+| `tools/measure.mjs` low tier, before -> after | main-pass calls 725 -> 751 and 508 -> 534 (later samples not comparable: the sampled race moments differed between runs) |
+| Browser run | headless Chromium (software GL) race loaded, 0 console/page errors in the capture runs |
+
+Not verified: real GPU fps, mobile devices, draw-call/perf delta, audio, touch controls.
+
+### Honest verdict
+The rear is clearly better than before (readable tail lights, exhaust and diffuser) but it is still an arcade-looking concept body: the wide flat rear panel, soft paint reflections and low-resolution look are unchanged, and the decal stripe makes the rear look busier. It is improved, not yet "premium realistic". A replacement model is still worth pursuing.
+
+### Phase 2 — asset search (blocked)
+Sketchfab, Poly Pizza, Polyhaven and Kenney were unreachable from the sandbox; only GitHub, raw.githubusercontent.com and npm were reachable. **No candidate was evaluated; no replacement was integrated; no new licences were added.** Current car licence unchanged: Car Concept, CC-BY 4.0 (attribution in README.md).
+
+### Known issues / next steps
+1. Owner decision: approve copying `carModel.ts` from the dev branch (single file) or keep `main` as is.
+2. Review braking, drift and boost frames and the low tier; measure draw calls with `tools/measure.mjs`.
+3. Consider darker/more reflective paint and a less busy default decal; the global start-line sun bloom is not car-specific and was left alone.
+4. Phase 2: download candidate GLBs manually (closed-roof coupe, real rear lights/wheels), keep licence text in `assets-src/`, check commercial use, render them in an isolated scene from the chase camera (`tools/rearshot.mjs` style) and only replace the car if the result is clearly better.

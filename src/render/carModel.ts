@@ -1,6 +1,6 @@
 import {
   AdditiveBlending, BoxGeometry, BufferGeometry, CanvasTexture, Color, ConeGeometry, DoubleSide, Euler, Group, LatheGeometry, Mesh, MeshBasicMaterial,
-  MeshPhysicalMaterial, MeshStandardMaterial, PlaneGeometry, SRGBColorSpace, TorusGeometry, CylinderGeometry, Vector2, Vector3, type Material, type Object3D,
+  Float32BufferAttribute, MeshPhysicalMaterial, MeshStandardMaterial, PlaneGeometry, SRGBColorSpace, TorusGeometry, CylinderGeometry, Vector2, Vector3, type Material, type Object3D,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
@@ -20,7 +20,7 @@ export interface CarSnapshot {
 }
 
 /** Measurements of the car model (metres; +z is the nose, y is up). */
-export const CAR = { length: 4.34, wheelR: 0.384, wheelW: 0.28, wheelX: 0.98, frontZ: 1.486, rearZ: -1.314, exhaust: [{ x: 0.48, y: 0.5, z: -1.98 }, { x: -0.48, y: 0.5, z: -1.98 }], glow: { w: 1.9, l: 3.8 } };
+export const CAR = { length: 4.34, wheelR: 0.384, wheelW: 0.28, wheelX: 0.98, frontZ: 1.486, rearZ: -1.314, exhaust: [{ x: 0.5, y: 0.355, z: -1.985 }, { x: -0.5, y: 0.355, z: -1.985 }], glow: { w: 1.9, l: 3.8 } };
 const WHEEL_KEYS = ['FL', 'FR', 'RL', 'RR'] as const;
 
 const shared = {
@@ -29,6 +29,8 @@ const shared = {
   rimDark: new MeshStandardMaterial({ color: 0x2a2d36, roughness: 0.45, metalness: 0.8 }),
   trim: new MeshStandardMaterial({ color: 0x1b1d25, roughness: 0.6, metalness: 0.2 }),
   glass: new MeshPhysicalMaterial({ color: 0x04070d, roughness: 0.03, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.8, transparent: true, opacity: 0.86 }),
+  tailLens: new MeshPhysicalMaterial({ color: 0x14030a, roughness: 0.12, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4 }),
+  carbon: new MeshStandardMaterial({ color: 0x0b0c10, roughness: 0.42, metalness: 0.35, envMapIntensity: 1.1 }),
   rimGeo: new Map<string, { rim: BufferGeometry; glow?: BufferGeometry }>(),
   decalTex: new Map<string, CanvasTexture>(),
 };
@@ -69,6 +71,35 @@ function decalTexture(kind: 'checker' | 'flame'): CanvasTexture {
   const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace; t.anisotropy = 4; shared.decalTex.set(kind, t); return t;
 }
 
+
+/** Rear surface of the body shell, measured from the model: z of the tail panel at height y and lateral offset x (nose is +z). */
+function tailZ(x: number, y: number): number {
+  const ys = [0.15, 0.25, 0.35, 0.55, 0.65, 0.75, 0.85, 0.95], zs = [-1.89, -1.91, -1.93, -1.94, -1.93, -1.91, -1.87, -1.78];
+  const yc = clamp(y, ys[0], ys[ys.length - 1]); let i = 0; while (i < ys.length - 2 && yc > ys[i + 1]) i++;
+  const t = (yc - ys[i]) / (ys[i + 1] - ys[i]); const zc = zs[i] + (zs[i + 1] - zs[i]) * t;
+  const ax = Math.abs(x), top = clamp((y - 0.55) / 0.4, 0, 1);
+  return zc + 0.085 * ax * ax + (0.5 + 2.5 * top) * Math.max(0, ax - 0.8) ** 2;
+}
+
+/** A ribbon that hugs the tail panel (`off` metres proud of it); the top and bottom edges may vary along x. Faces rearwards. */
+function tailRibbon(x0: number, x1: number, lo: (x: number) => number, hi: (x: number) => number, off: number, seg: number): BufferGeometry {
+  const pos: number[] = [], idx: number[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const x = x0 + (x1 - x0) * (i / seg), yl = lo(x), yh = hi(x);
+    for (const y of [yl, (yl + yh) / 2, yh]) pos.push(x, y, tailZ(x, y) - off);
+  }
+  for (let i = 0; i < seg; i++) for (let r = 0; r < 2; r++) {
+    const a = i * 3 + r, b = (i + 1) * 3 + r;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  if (g.getAttribute('normal').getZ(0) > 0) { // make sure the lit side faces the chase camera (behind the car)
+    const ix = g.getIndex()!; for (let k = 0; k < ix.count; k += 3) { const t = ix.getX(k + 1); ix.setX(k + 1, ix.getX(k + 2)); ix.setX(k + 2, t); }
+    g.computeVertexNormals();
+  }
+  return g;
+}
+
 /** Nose-to-tail dummy vectors reused by the decal projector. */
 const projEuler = new Euler(Math.PI / 2, 0, 0);
 
@@ -86,6 +117,8 @@ export class CarView {
   private paintMain: MeshPhysicalMaterial | null = null;
   private paintAccent: MeshPhysicalMaterial | null = null;
   private brake: MeshStandardMaterial | null = null;
+  private tailLed: MeshStandardMaterial | null = null;
+  private rearGroup: Group | null = null;
   private head: MeshStandardMaterial | null = null;
   private owned: BufferGeometry[] = [];
   private ownedMats: Material[] = [];
@@ -95,16 +128,19 @@ export class CarView {
   private loadout: Loadout | null = null;
   private spin = 0; private roll = 0; private pitch = 0; private bounce = 0; private lastSpeed = 0; private accel = 0; private flick = 0;
   private readonly blob: Mesh;
+  private readonly contact: Mesh;
   private readonly glowQuad: Mesh;
 
   constructor(private readonly assets: CarAssets) {
     if (!shared.blob) shared.blob = makeBlob();
     this.blob = new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ map: shared.blob, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
     this.blob.rotation.x = -Math.PI / 2; this.blob.position.y = 0.04; this.blob.renderOrder = 1; this.blob.scale.set(CAR.wheelX * 2 + 1.3, CAR.length + 0.9, 1);
+    this.contact = new Mesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ map: shared.blob, color: 0x000000, opacity: 0.8, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+    this.contact.rotation.x = -Math.PI / 2; this.contact.position.y = 0.045; this.contact.renderOrder = 1; this.contact.scale.set(CAR.wheelX * 2 + 0.2, CAR.length - 0.1, 1);
     this.glowQuad = new Mesh(new PlaneGeometry(1, 1), this.glowMat); this.glowQuad.rotation.x = -Math.PI / 2; this.glowQuad.position.y = 0.06; this.glowQuad.renderOrder = 3;
     this.glowQuad.scale.set(CAR.glow.w, CAR.glow.l, 1);
     this.root.rotation.order = 'YXZ';
-    this.root.add(this.blob, this.glowQuad, this.tilt);
+    this.root.add(this.blob, this.contact, this.glowQuad, this.tilt);
     this.tilt.add(this.decals, this.spoilerGroup);
   }
 
@@ -124,7 +160,8 @@ export class CarView {
 
   private clearModel(): void {
     if (this.model) this.tilt.remove(this.model);
-    this.model = null; this.wheels = [];
+    if (this.rearGroup) this.tilt.remove(this.rearGroup);
+    this.model = null; this.wheels = []; this.rearGroup = null; this.tailLed = null;
     for (const f of this.flames) this.tilt.remove(f);
     this.flames.length = 0;
     this.owned.forEach(g => g.dispose()); this.owned = [];
@@ -176,6 +213,42 @@ export class CarView {
       outer.visible = core.visible = false; outer.frustumCulled = core.frustumCulled = false;
       this.tilt.add(outer, core); this.flames.push(outer, core);
     }
+    this.buildRearDetail();
+  }
+
+
+  /** Rear-end detail the stock model lacks: a full-width tail-light bar, tailpipes and a finned diffuser (restrained, no bloom tricks). */
+  private buildRearDetail(): void {
+    const g = new Group(); this.rearGroup = g;
+    const full = this.lod !== 'low';
+    const own = (geo: BufferGeometry): BufferGeometry => { this.owned.push(geo); return geo; };
+    const led = new MeshStandardMaterial({ color: 0x2b0207, emissive: 0xff1c28, emissiveIntensity: 1.5, roughness: 0.35, metalness: 0 });
+    this.ownedMats.push(led); this.tailLed = led;
+    // smoked lens band wrapping the tail, with the lit bar sunk into it; the centre stays clear
+    const lensTop = (x: number): number => 0.93 - 0.05 * Math.max(0, Math.abs(x) - 0.55) / 0.4;
+    const lensLo = (x: number): number => 0.8 + 0.035 * Math.max(0, Math.abs(x) - 0.55) / 0.4;
+    const seg = full ? 28 : 12;
+    const lensGeo = mergeGeometries([tailRibbon(-0.9, -0.1, lensLo, lensTop, 0.016, seg), tailRibbon(0.1, 0.9, lensLo, lensTop, 0.016, seg)])!;
+    const lens = new Mesh(own(lensGeo), shared.tailLens); g.add(lens);
+    const ledLo = (x: number): number => lensLo(x) + 0.03, ledHi = (x: number): number => ledLo(x) + 0.032;
+    const ledParts: BufferGeometry[] = [tailRibbon(-0.86, -0.14, ledLo, ledHi, 0.022, seg), tailRibbon(0.14, 0.86, ledLo, ledHi, 0.022, seg), tailRibbon(-0.1, 0.1, () => ledLo(0), () => ledHi(0), 0.02, 2)];
+    // diffuser: dark insert with fins under the bumper line, plus a small rear fog lamp
+    const box = (w: number, h: number, d: number, px: number, py: number, pz: number, rx = 0): BufferGeometry => { const b = new BoxGeometry(w, h, d); b.rotateX(rx); b.translate(px, py, pz); return b; };
+    const carbon: BufferGeometry[] = [box(1.2, 0.14, 0.02, 0, 0.28, tailZ(0, 0.28) - 0.012, 0.1), box(1.26, 0.02, 0.04, 0, 0.215, tailZ(0, 0.215) - 0.018)];
+    if (full) for (let i = -3; i <= 3; i++) carbon.push(box(0.014, 0.11, 0.045, i * 0.17, 0.275, tailZ(i * 0.17, 0.275) - 0.028, 0.1));
+    carbon.push(box(1.2, 0.012, 0.04, 0, 0.352, tailZ(0, 0.352) - 0.022));
+    const fog = box(0.16, 0.028, 0.012, 0, 0.255, tailZ(0, 0.255) - 0.024); fog.deleteAttribute('uv'); ledParts.push(fog);
+    g.add(new Mesh(own(mergeGeometries(ledParts)!), led));
+    // twin chrome tailpipes with dark interiors, sunk slightly into the bumper
+    const pipes: BufferGeometry[] = [], inner: BufferGeometry[] = [];
+    for (const e of CAR.exhaust) {
+      const barrel = new CylinderGeometry(0.055, 0.05, 0.12, full ? 20 : 10, 1, true); barrel.rotateX(Math.PI / 2); barrel.translate(e.x, e.y, e.z + 0.055); pipes.push(barrel);
+      const lip = new TorusGeometry(0.055, 0.01, 6, full ? 20 : 10); lip.translate(e.x, e.y, e.z - 0.008); pipes.push(lip);
+      const hole = new CylinderGeometry(0.048, 0.048, 0.01, full ? 16 : 8); hole.rotateX(Math.PI / 2); hole.translate(e.x, e.y, e.z + 0.075); inner.push(hole);
+    }
+    g.add(new Mesh(own(mergeGeometries(pipes)!), shared.rim)); g.add(new Mesh(own(mergeGeometries([...carbon, ...inner])!), shared.carbon));
+    g.traverse(o => { if ((o as Mesh).isMesh) { (o as Mesh).castShadow = false; } });
+    this.tilt.add(g);
   }
 
   private applyWheels(): void {
@@ -274,6 +347,7 @@ export class CarView {
       if (w.front) w.pivot.rotation.y = s.steer * 0.5;
     }
     if (this.brake) this.brake.emissiveIntensity = s.braking ? 6 : 1.4;
+    if (this.tailLed) this.tailLed.emissiveIntensity = s.braking ? 4.2 : 1.5;
     this.flick += dt * 40;
     const on = s.boosting;
     for (let i = 0; i < this.flames.length; i++) {
@@ -284,7 +358,7 @@ export class CarView {
     this.flameMat.color.setHex(on ? 0x58b8ff : 0xff9a3a);
     this.glowMat.color.setHex(s.drifting ? tierCol : 0x35d0ff);
     this.glowMat.opacity += ((on ? 0.55 : s.drifting && s.driftTier > 0 ? 0.35 : 0) * (0.85 + 0.15 * Math.sin(time * 30)) - this.glowMat.opacity) * damp(14, dt);
-    this.blob.position.y = 0.04;
+    this.blob.position.y = 0.04; this.contact.position.y = 0.045;
   }
 
   setVisible(v: boolean): void { this.root.visible = v; }
@@ -304,7 +378,7 @@ export class CarView {
     this.clearModel();
     this.decals.children.forEach(c => (c as Mesh).geometry.dispose());
     this.flameMat.dispose(); this.coreMat.dispose(); this.glowMat.dispose(); this.neonMat.dispose();
-    this.blob.geometry.dispose(); (this.blob.material as MeshBasicMaterial).dispose(); this.glowQuad.geometry.dispose();
+    this.blob.geometry.dispose(); (this.blob.material as MeshBasicMaterial).dispose(); this.contact.geometry.dispose(); (this.contact.material as MeshBasicMaterial).dispose(); this.glowQuad.geometry.dispose();
   }
 }
 void LatheGeometry; void Vector2;
