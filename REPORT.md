@@ -79,3 +79,46 @@ Only the last medium sample differs (the sample landed at a slightly different r
 
 ## Car visual revamp (on `main`)
 See `HANDOVER.md` "Car Visual Quality Revamp". Summary: procedural tail-light bar, finned diffuser, chrome tailpipes and contact shadow added to `src/render/carModel.ts`; before/after chase-camera crops in `docs/car-revamp/`; asset search for a replacement was blocked (marketplaces unreachable), so no model or licence was added. Spectral GT RS not used.
+
+
+---
+
+## Car model candidate test — Innerscene generic coupes (2026-10-27)
+
+No car change shipped. Two supplied candidates were measured and rendered from the chase camera and rejected on look (boxy notchback rear, small tail lamps, trunk-seam artefacts, loose geometry under the floor, about 113k triangles / 400 meshes each as shipped, 11 solid-colour 2048x2048 textures). Licence and commercial-use terms are **unverified** (no network in the sandbox; the GLBs have no licence metadata), so nothing from them is in the project. Evidence: `docs/car-candidates/`. Test tooling: `tools/candidate-viewer/`.
+
+| Check | Result |
+|---|---|
+| Candidate geometry inspection (python GLB parser) | done |
+| Candidate chase / side / rear-3/4 renders (own WebGL viewer, software GL, 1280x720) | done; lighting is approximate |
+| `npm run typecheck`, `npm test`, `npm run build` | **not run**: no `node_modules`, npm registry unreachable |
+| Running game, before/after screenshots, draw calls, fps, driving/drift/boost | **not performed** (no source change, game not launched) |
+| Licence text read | **no** (sites unreachable; files carry none) |
+
+
+---
+
+## Premium car asset search, session 2 (2026-10-27)
+
+Blocked by the environment: no internet, no npm/pip, no new files. No search, download, licence check, render, integration, typecheck, test, build or in-game capture was performed; the car is unchanged. Deliverables are the manual shortlist brief (`docs/car-candidates/MANUAL_SEARCH.md`) and the intake checker (`tools/candidate-viewer/intake.py`). No licence is claimed for any model.
+
+
+---
+
+## Session 3 candidate test (2026-10-27)
+Two further supplied models (`sports-car.glb`, `1990s-sports-car.glb`) were inspected (`intake.py`) and rendered from the chase camera in the corrected viewer: good budgets, but stylised/toy-like bodies and unknown licence, so no integration. A viewer transform bug from session 1 was fixed and the affected claims corrected (see `docs/car-candidates/EVALUATION.md`). No typecheck/test/build/in-game run was possible.
+
+
+---
+
+## Sculpted body (Option B), 2026-10-28
+
+Implemented a runtime reshaping of the stock body (roofline, rear deck/glass rake, tail plan, valance depth, arch flares) with a refit rear-light/diffuser/pipe/spoiler layout, plus fallbacks (`?body=original`, exception fallback). Evidence: `docs/car-body-sculpt/` (isolated renders of the same code on the real mesh, not the game). Visible improvement: a lower, narrower, more tapered tail and tucked-in greenhouse; moderate, not a new car (side profile and lower valance mostly unchanged).
+
+| Check | Result |
+|---|---|
+| New unit tests (12) | pass under `tsx` + local vitest shim; mutation-checked |
+| `tsc` strict on bodyWarp.ts / test / bodyWarpScene.ts | pass against a hand-written three stub (not authoritative) |
+| `npm run typecheck`, `npm test` (existing suite), `npm run build` | **not run** (no node_modules, no network) |
+| Running game, in-game before/after, draw calls, fps, driving/drift/boost | **not performed** |
+| three.js glue vs real three 0.180 | **unverified** |

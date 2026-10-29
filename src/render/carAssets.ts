@@ -1,6 +1,8 @@
 import { Group, type Object3D } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { setBodyShape } from './bodyWarp';
+import { applyBodyShape } from './bodyWarpScene';
 
 export type CarLod = 'high' | 'mid' | 'low';
 
@@ -16,6 +18,12 @@ export class CarAssets {
   async load(lod: CarLod): Promise<Group> {
     const hit = this.templates.get(lod); if (hit) return hit;
     const gltf = await this.loader.loadAsync(`${this.base}models/car-${lod}.glb`);
+    // Sculpted body shape (roofline, rear deck, tail, valance, flares). `?body=original` restores the stock shape for A/B checks,
+    // and any failure leaves the stock model and its original rear layout in place.
+    const stock = typeof location !== 'undefined' && new URLSearchParams(location.search).get('body') === 'original';
+    if (!stock) {
+      try { if (applyBodyShape(gltf.scene) > 0) setBodyShape('sculpted'); } catch (e) { console.warn('[car] body reshaping skipped, using the stock body', e); }
+    }
     this.templates.set(lod, gltf.scene);
     return gltf.scene;
   }

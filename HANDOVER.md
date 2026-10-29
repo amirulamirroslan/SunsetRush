@@ -104,3 +104,81 @@ Sketchfab, Poly Pizza, Polyhaven and Kenney were unreachable from the sandbox; o
 2. Review braking, drift and boost frames and the low tier; measure draw calls with `tools/measure.mjs`.
 3. Consider darker/more reflective paint and a less busy default decal; the global start-line sun bloom is not car-specific and was left alone.
 4. Phase 2: download candidate GLBs manually (closed-roof coupe, real rear lights/wheels), keep licence text in `assets-src/`, check commercial use, render them in an isolated scene from the chase camera (`tools/rearshot.mjs` style) and only replace the car if the result is clearly better.
+
+
+---
+
+## Better sports-car model search (2026-10-27) — result: no replacement, current car kept
+
+Owner brief: find and test a more realistic closed-roof sports coupe for the chase camera; integrate only if clearly better. Local ZIP workflow only (no Git used).
+
+**Outcome:** both supplied Innerscene GLBs (generic 1990s Japanese sports coupe, generic front-engine grand tourer coupe) were inspected and rendered from the chase-camera numbers and **rejected**: they are boxy notchback bodies (flat trunk deck, upright rear glass, small pink tail-lamp rectangles, scalloped trunk seam, stray parts under the floor) and look worse than the current Car Concept body from behind. Nothing in `src/`, `public/models/`, `package.json` or save data changed. Rollback is unnecessary; the original `carModel.ts` is untouched.
+
+Evidence and details: `docs/car-candidates/EVALUATION.md` and the images in that folder (`compare_chase_current_vs_candidates.png` is the main one). Tooling for the next candidate: `tools/candidate-viewer/` (dependency-free WebGL screening viewer + GLB geometry report).
+
+**Licence: unverified.** The sandbox had no internet; the Innerscene pages could not be read and the GLBs contain no licence/author metadata. Commercial use, attribution and redistribution are unknown, so the models were not added to the project. Other sources were not searched.
+
+**Not run / not verified:** `npm run typecheck`, `npm test`, `npm run build` were **not run** because `node_modules` is not in the ZIP and the sandbox cannot reach the npm registry (no three, vite or vitest available). Source is unchanged from the previous checkpoint, which reported tsc clean / 52 tests / build OK, but that is not re-verified here. The running game was not launched, so there are no new in-game before/after screenshots, no draw-call or fps numbers, and no driving/braking/drift/boost checks. The candidate renders came from my own simplified WebGL viewer (flat colours, procedural sunset reflections), not the game's renderer, so they show shape and stance, not final paint quality; the "current car" panel is the existing real game frame `docs/car-revamp/after-rear-chase-full.png`.
+
+**Next steps:** (1) read the Innerscene licence text yourself if you still want those models, though I would not use them; (2) find a fastback/wedge coupe (see the steps and integration contract at the bottom of `docs/car-candidates/EVALUATION.md`), save it plus its licence under `assets-src/`, screen it with `tools/candidate-viewer`; (3) only then integrate behind a flag with the existing `car-*.glb` as fallback; (4) on a machine with internet run `npm ci && npm run typecheck && npm test && npm run build`.
+
+
+---
+
+## Premium sports-car search, session 2 (2026-10-27) — blocked, no change
+
+Brief: find a Porsche-style closed-roof coupe (not a copy of branded design), verified licence, integrate only if clearly better than the current car.
+
+**Access check result:** no internet at all (DNS resolution fails for sketchfab.com, poly.pizza, polyhaven.com, kenney.nl, quaternius.com, github.com, raw.githubusercontent.com, registry.npmjs.org, innerscene.com, opengameart.org, jsdelivr), npm and pip installs also fail, and `node_modules` is not in the ZIP. No new model files were attached.
+
+**Therefore:** no other site was searched, no candidate was downloaded or rendered, no licence was read, and **the current car is unchanged** (`src/`, `public/`, `package*.json` untouched this session). The two Innerscene models stay rejected.
+
+**Added for the hand-back loop (tools/docs only):**
+- `docs/car-candidates/MANUAL_SEARCH.md`: licence rules for a shipped browser game (CC0/CC-BY only, no redistribution-restricted marketplace licences, trademark/badge caution), source search pages (unverified, from memory), visual checklist, and what to send back.
+- `tools/candidate-viewer/intake.py`: offline GLB/glTF checker (licence metadata, extensions, meshes/primitives, materials, texture sizes, triangles, size/proportions, PASS/WARN/FAIL). Tested on the rejected Innerscene GLB (FAIL: no licence metadata, 404 primitives) and the current Car Concept glTF. Geometry reading does not support meshopt/Draco-compressed files; it says so.
+
+**Not run:** typecheck/tests/build (no dependencies, no network), the running game, screenshots, draw calls/fps. Nothing about the game changed, so the earlier recorded results (tsc clean, 52 tests, build OK) are inherited, not re-verified.
+
+**Next step:** download up to 3 finalists following `MANUAL_SEARCH.md`, put them in a conversation with their licence text, run `intake.py`, render with `tools/candidate-viewer`, then integrate only the winner (contract in `docs/car-candidates/EVALUATION.md`).
+
+
+---
+
+## Session 3 (2026-10-27): two more owner-supplied models tested — rejected, current car kept
+
+`sports-car.glb` (35k tris) and `1990s-sports-car.glb` (17k tris) pass the budget checks (18 primitives, correct +Z/y-up/scale, separate wheel nodes) but look like stylised clay/arcade cars (slab rear, bolt-on wing, flat painted lamps); not clearly better than the current car, licence unknown (no metadata, no source page). Details and images: `docs/car-candidates/EVALUATION.md` (session 3 section) and the `session3-*` images.
+
+**Correction to session 1:** the candidate viewer ignored node transforms, so the "loose parts under the floor" note about the Innerscene models was wrong (withdrawn); fixed in `tools/candidate-viewer/viewer.html`, which now also samples base-colour and metal/rough textures (normal maps and clearcoat textures are not applied). The Innerscene rejection still stands (boxy notchback, 400 meshes, unverified licence).
+
+Code unchanged: `src/`, `public/`, `package*.json` are identical to the original ZIP. Not run: typecheck/tests/build (no dependencies, no network), the running game, draw calls, fps.
+
+
+---
+
+## Session 4 (2026-10-28): Option B, sculpted body on the existing car (implemented, NOT run in the game)
+
+Owner chose "rebuild the current car's body" instead of a third-party model. Implemented as a runtime reshaping of the stock Car Concept geometry; no asset files changed.
+
+**Files:** `src/render/bodyWarp.ts` (pure, three-free: `warpPoint`/`warpBuffers`, `REAR_LAYOUTS`, `tailSurfaceZ`, `lensEdges`, `tailRibbonGrid`, `setBodyShape`), `src/render/bodyWarp.test.ts` (12 tests), `src/render/bodyWarpScene.ts` (`applyBodyShape(scene)`), edits in `carAssets.ts` (apply after load, `?body=original` switch, try/catch fallback) and `carModel.ts` (tailZ/tailRibbon now come from bodyWarp; lens band, spoiler height and tailpipe depth read the active layout; `CAR.exhaust[i].z` is synced in `rebuild()`), `tools/warp-preview.ts`, `docs/car-body-sculpt/`, README attribution note (CC-BY "changes made"). Physics, camera, track, rivals, HUD, menus, save data, `public/models/*` unchanged.
+
+**What it does:** see `docs/car-body-sculpt/README.md` (tumblehome up to 15 %, roof -5 cm, rear deck falls up to 13 cm, tail plan up to 13 % narrower behind the axle, valance +5 cm, flares +4.5 cm, wheels untouched; normals via Jacobian). Rear lamp band, diffuser, pipes (z -2.01) and spoiler mounts (-0.14 m) follow the new surface via the `sculpted` layout, fitted to the warped mesh (rms 1.1 cm, max 3.3 cm).
+
+**Fallbacks:** `?body=original`; any exception leaves stock body + stock layout; `original` layout is regression-tested to equal the previous `tailZ` exactly.
+
+**Verified here:** the pure warp ran on the real source mesh (`tools/warp-preview.ts`) and was rendered before/after from the chase-camera numbers (`docs/car-body-sculpt/*.png`, simplified shader, NOT the game); 12 unit tests pass under `tsx` with a local vitest shim (a mutation check proved they can fail); `tsc` strict + noUnused* passes for bodyWarp.ts, its test and bodyWarpScene.ts against a hand-written minimal three stub (not authoritative).
+
+**NOT verified (no node_modules, no network):** `npm run typecheck`, `npm test` (vitest, existing 52 tests), `npm run build`, the three.js glue against the real three 0.180 / GLTFLoader (meshopt-quantized attributes are converted to Float32 via `getX..getW`; node transforms are baked and reset), the running game, shadows, decals on the warped hood/rear panel (they target mesh names `BodyHood`/`BodyRearPanelsColor1`, which are preserved), spoiler fit for lip/wing/gt, the low LOD, rival cars, garage preview, draw calls and fps (geometry counts are unchanged; warping adds a one-off pass over about 100k vertices at load). Paint/glass materials were NOT changed (paintMain already has clearcoat 1, roughness 0): reflections only change through the new surface curvature and normals.
+
+**To finish (on a machine with dependencies):**
+1. `npm ci && npm run typecheck && npm test && npm run build`. If three typing complains about `bodyWarpScene.ts`, it is only glue (about 40 lines).
+2. Run the game, open the same chase view with and without `?body=original`, and capture before/after screenshots; check the three spoilers, decals, low LOD and rivals; check that the tail lamps, diffuser and pipes still sit on the surface in all LODs.
+3. Retune `SCULPTED` in `bodyWarp.ts` if wanted. If the rear shape changes, re-fit `REAR_LAYOUTS.sculpted` (method: `tools/warp-preview.ts` output, bin the rear-most z of `BodyRearPanelsColor1`/`BodyPanelsColor2` per (|x|, y), least-squares the curvature terms; the "layout and warp are consistent" test must stay green).
+4. Known limits: the side profile barely changes (by design); the lower rear valance remains blocky; the roof glass transparency, and the paint look under the real HDRI, are unchanged.
+
+**Process note:** one read-only `git status` was run by mistake while editing. It only refreshed git's stat cache (`.git/index`); that file was restored byte-for-byte from the original ZIP before packaging. No commit, branch, merge or push was made.
+
+
+### Session 4 addendum (2026-10-29): final checks before hand-off
+- Re-probed the sandbox: still no network/npm, so the "NOT verified" list above stands.
+- Verified from the shipped `public/models/car-{high,mid,low}.glb` JSON: every LOD has the same hierarchy: one identity `Body` group holding 42 mesh nodes (each translation + uniform quantization scale), and `wheel_FL/FR/RL/RR` as separate scene roots. So `applyBodyShape` (bakes node transforms, resets only body mesh nodes and the identity `Body` group, skips anything under `wheel_*`) cannot move a wheel, and mesh names used by decals (`BodyHood`, `BodyRearPanelsColor1`) are preserved. Shipped node positions/scales match the source mesh the warp was fitted on.
+- Git: this ZIP still contains the original `.git` folder untouched. In your working copy the change will show as 2 modified source files (`src/render/carAssets.ts`, `src/render/carModel.ts`), 3 new source files (`bodyWarp.ts`, `bodyWarp.test.ts`, `bodyWarpScene.ts`), `tools/warp-preview.ts`, `tools/candidate-viewer/`, `docs/car-candidates/`, `docs/car-body-sculpt/`, `README.md`, `HANDOVER.md`, `REPORT.md`. One read-only `git status` was run by mistake during session 4; it only refreshed git's stat cache (`.git/index`), which has been restored byte-for-byte from your original ZIP, so `.git` in this ZIP is identical to the original.

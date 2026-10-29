@@ -9,6 +9,7 @@ import { clamp, damp } from '../sim/math';
 import type { Texture as ThreeTexture } from 'three';
 import { makeBlob, makeGlow } from './textures';
 import type { CarAssets, CarLod } from './carAssets';
+import { lensEdges, rearLayout, tailRibbonGrid, tailSurfaceZ } from './bodyWarp';
 
 /** Everything the car visuals need from the simulation for one frame (already interpolated). */
 export interface CarSnapshot {
@@ -72,26 +73,12 @@ function decalTexture(kind: 'checker' | 'flame'): CanvasTexture {
 }
 
 
-/** Rear surface of the body shell, measured from the model: z of the tail panel at height y and lateral offset x (nose is +z). */
-function tailZ(x: number, y: number): number {
-  const ys = [0.15, 0.25, 0.35, 0.55, 0.65, 0.75, 0.85, 0.95], zs = [-1.89, -1.91, -1.93, -1.94, -1.93, -1.91, -1.87, -1.78];
-  const yc = clamp(y, ys[0], ys[ys.length - 1]); let i = 0; while (i < ys.length - 2 && yc > ys[i + 1]) i++;
-  const t = (yc - ys[i]) / (ys[i + 1] - ys[i]); const zc = zs[i] + (zs[i + 1] - zs[i]) * t;
-  const ax = Math.abs(x), top = clamp((y - 0.55) / 0.4, 0, 1);
-  return zc + 0.085 * ax * ax + (0.5 + 2.5 * top) * Math.max(0, ax - 0.8) ** 2;
-}
+/** Rear surface of the body shell (see bodyWarp.ts: measured from the model, per body shape): z of the tail panel at height y and lateral offset x (nose is +z). */
+const tailZ = (x: number, y: number): number => tailSurfaceZ(x, y);
 
 /** A ribbon that hugs the tail panel (`off` metres proud of it); the top and bottom edges may vary along x. Faces rearwards. */
 function tailRibbon(x0: number, x1: number, lo: (x: number) => number, hi: (x: number) => number, off: number, seg: number): BufferGeometry {
-  const pos: number[] = [], idx: number[] = [];
-  for (let i = 0; i <= seg; i++) {
-    const x = x0 + (x1 - x0) * (i / seg), yl = lo(x), yh = hi(x);
-    for (const y of [yl, (yl + yh) / 2, yh]) pos.push(x, y, tailZ(x, y) - off);
-  }
-  for (let i = 0; i < seg; i++) for (let r = 0; r < 2; r++) {
-    const a = i * 3 + r, b = (i + 1) * 3 + r;
-    idx.push(a, a + 1, b, b, a + 1, b + 1);
-  }
+  const { pos, idx } = tailRibbonGrid(x0, x1, lo, hi, off, seg);
   const g = new BufferGeometry(); g.setAttribute('position', new Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   if (g.getAttribute('normal').getZ(0) > 0) { // make sure the lit side faces the chase camera (behind the car)
     const ix = g.getIndex()!; for (let k = 0; k < ix.count; k += 3) { const t = ix.getX(k + 1); ix.setX(k + 1, ix.getX(k + 2)); ix.setX(k + 2, t); }
@@ -170,6 +157,7 @@ export class CarView {
 
   private rebuild(): void {
     this.clearModel();
+    for (const e of CAR.exhaust) e.z = rearLayout().exhaustZ; // tailpipe depth follows the active body shape
     const tpl = this.assets.template(this.lod);
     const model = tpl.clone(true);
     this.model = model; this.builtLod = this.lod;
@@ -225,13 +213,12 @@ export class CarView {
     const led = new MeshStandardMaterial({ color: 0x2b0207, emissive: 0xff1c28, emissiveIntensity: 1.5, roughness: 0.35, metalness: 0 });
     this.ownedMats.push(led); this.tailLed = led;
     // smoked lens band wrapping the tail, with the lit bar sunk into it; the centre stays clear
-    const lensTop = (x: number): number => 0.93 - 0.05 * Math.max(0, Math.abs(x) - 0.55) / 0.4;
-    const lensLo = (x: number): number => 0.8 + 0.035 * Math.max(0, Math.abs(x) - 0.55) / 0.4;
+    const L = rearLayout(), { top: lensTop, lo: lensLo } = lensEdges(L), half = L.lens.half;
     const seg = full ? 28 : 12;
-    const lensGeo = mergeGeometries([tailRibbon(-0.9, -0.1, lensLo, lensTop, 0.016, seg), tailRibbon(0.1, 0.9, lensLo, lensTop, 0.016, seg)])!;
+    const lensGeo = mergeGeometries([tailRibbon(-half, -0.1, lensLo, lensTop, 0.016, seg), tailRibbon(0.1, half, lensLo, lensTop, 0.016, seg)])!;
     const lens = new Mesh(own(lensGeo), shared.tailLens); g.add(lens);
     const ledLo = (x: number): number => lensLo(x) + 0.03, ledHi = (x: number): number => ledLo(x) + 0.032;
-    const ledParts: BufferGeometry[] = [tailRibbon(-0.86, -0.14, ledLo, ledHi, 0.022, seg), tailRibbon(0.14, 0.86, ledLo, ledHi, 0.022, seg), tailRibbon(-0.1, 0.1, () => ledLo(0), () => ledHi(0), 0.02, 2)];
+    const ledHalf = half - 0.04, ledParts: BufferGeometry[] = [tailRibbon(-ledHalf, -0.14, ledLo, ledHi, 0.022, seg), tailRibbon(0.14, ledHalf, ledLo, ledHi, 0.022, seg), tailRibbon(-0.1, 0.1, () => ledLo(0), () => ledHi(0), 0.02, 2)];
     // diffuser: dark insert with fins under the bumper line, plus a small rear fog lamp
     const box = (w: number, h: number, d: number, px: number, py: number, pz: number, rx = 0): BufferGeometry => { const b = new BoxGeometry(w, h, d); b.rotateX(rx); b.translate(px, py, pz); return b; };
     const carbon: BufferGeometry[] = [box(1.2, 0.14, 0.02, 0, 0.28, tailZ(0, 0.28) - 0.012, 0.1), box(1.26, 0.02, 0.04, 0, 0.215, tailZ(0, 0.215) - 0.018)];
@@ -268,7 +255,7 @@ export class CarView {
 
   private buildSpoiler(): void {
     this.tilt.remove(this.spoilerGroup); this.spoilerGroup = new Group();
-    const kind = this.loadout!.spoiler, halfW = 0.74, y = 1.0, z = -1.62;
+    const kind = this.loadout!.spoiler, halfW = 0.74, y = 1.0 + rearLayout().spoilerDy, z = -1.62;
     const box = (w: number, h: number, d: number, px: number, py: number, pz: number, rx = 0): BufferGeometry => { const g = new BoxGeometry(w, h, d); g.rotateX(rx); g.translate(px, py, pz); this.owned.push(g); return g; };
     const add = (geo: BufferGeometry, mat: Material): void => { const x = new Mesh(geo, mat); x.castShadow = true; this.spoilerGroup.add(x); };
     const merge = (l: BufferGeometry[]): BufferGeometry => { const r = mergeGeometries(l)!; this.owned.push(r); return r; };

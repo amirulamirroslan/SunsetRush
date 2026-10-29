@@ -54,7 +54,7 @@ Design rules: cosmetics never change handling; every vehicle shares one physics 
 | Sports car (`public/models/car-*.glb`) | "Car Concept" by Eric Chadwick / Darmstadt Graphics Group, derived from a CC0 model by Unity Fan — Khronos glTF-Sample-Assets `CarConcept` | CC-BY 4.0 (attribution required) |
 | Asphalt PBR textures (`public/textures/asphalt_*.webp`) | Poly Haven `asphalt_02` | CC0 |
 
-Attribution: *Car Concept* © Eric Chadwick, Darmstadt Graphics Group GmbH, CC-BY 4.0, based on a CC0 model by Unity Fan.
+Attribution: *Car Concept* © Eric Chadwick, Darmstadt Graphics Group GmbH, CC-BY 4.0, based on a CC0 model by Unity Fan. **Changes made:** the body shape is modified at load time (see `src/render/bodyWarp.ts`: lower roofline and rear deck, narrower upper body and tail, deeper rear valance, slight fender flares); unmodified shape: add `?body=original` to the URL.
 
 Optional, off by default (`?hdri`): the Poly Haven sunset HDRI (CC0) as shipped, resized to 512 px, by `@pmndrs/assets@1.7.0` (CC0-1.0), used only as the reflection map of car paint and glass.
 
