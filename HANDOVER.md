@@ -182,3 +182,10 @@ Owner chose "rebuild the current car's body" instead of a third-party model. Imp
 - Re-probed the sandbox: still no network/npm, so the "NOT verified" list above stands.
 - Verified from the shipped `public/models/car-{high,mid,low}.glb` JSON: every LOD has the same hierarchy: one identity `Body` group holding 42 mesh nodes (each translation + uniform quantization scale), and `wheel_FL/FR/RL/RR` as separate scene roots. So `applyBodyShape` (bakes node transforms, resets only body mesh nodes and the identity `Body` group, skips anything under `wheel_*`) cannot move a wheel, and mesh names used by decals (`BodyHood`, `BodyRearPanelsColor1`) are preserved. Shipped node positions/scales match the source mesh the warp was fitted on.
 - Git: this ZIP still contains the original `.git` folder untouched. In your working copy the change will show as 2 modified source files (`src/render/carAssets.ts`, `src/render/carModel.ts`), 3 new source files (`bodyWarp.ts`, `bodyWarp.test.ts`, `bodyWarpScene.ts`), `tools/warp-preview.ts`, `tools/candidate-viewer/`, `docs/car-candidates/`, `docs/car-body-sculpt/`, `README.md`, `HANDOVER.md`, `REPORT.md`. One read-only `git status` was run by mistake during session 4; it only refreshed git's stat cache (`.git/index`), which has been restored byte-for-byte from your original ZIP, so `.git` in this ZIP is identical to the original.
+
+
+---
+
+## Session 5 (2026-10-29): start splash screen
+
+Added an animated start splash (sunset, sun, mountains, scrolling road, the car, logo, loading bar, then "Press any key / Tap to start"). See `docs/splash/README.md` for behaviour, skip rules (`?nosplash`, `?debug`, automated browsers), files and what was and was not verified. Code: new `src/ui/splash.ts`, `splash.css`, `splashLogic.ts`, `splashLogic.test.ts`; `src/main.ts` has 4 small edits. Not verified: inside the real game with three.js, on real devices, `npm run typecheck/test/build` (run them before pushing). NOTE: this project copy was built from a base that lacks `src/render/vegetation.test.ts` and `src/sim/racing.test.ts` from the live repo, so prefer applying only the splash files to the real repo.

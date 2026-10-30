@@ -14,7 +14,7 @@ npm test             # unit tests (simulation, save, quality, loft)
 npm run e2e          # headless-Chromium flow check; needs a served build: node tools/e2e.mjs http://localhost:4173/ shots
 ```
 
-URL options: `?q=high|medium|low` forces a graphics tier, `?touch=1|0` forces touch controls, `?debug` exposes `window.__rush` (used by the e2e script).
+URL options: `?q=high|medium|low` forces a graphics tier, `?touch=1|0` forces touch controls, `?debug` exposes `window.__rush` (used by the e2e script). `?nosplash` skips the start splash (`?debug` and automated browsers skip it too).
 
 ## Controls
 

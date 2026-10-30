@@ -1,0 +1,99 @@
+/* Start splash: sunset, striped sun, mountains, a scrolling perspective road and the car from behind.
+   Uses the game's palette and type (see :root in styles.css). Pure CSS, no images. */
+
+.splash { --hz: 58%; position: fixed; inset: 0; z-index: 60; overflow: hidden; background: #0d0a2a; color: var(--text); user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: pointer; }
+.splash > * { position: absolute; }
+.splash.sp-leave { opacity: 0; transform: scale(1.05); filter: blur(5px); pointer-events: none; transition: opacity 0.7s ease, transform 0.7s var(--ease), filter 0.7s ease; }
+
+/* sky + stars */
+.sp-sky { inset: 0; background: linear-gradient(180deg, #0b0828 0%, #26115a 26%, #6d2a80 48%, #ff5b7e 70%, #ffa95c 86%, #ffd98f 100%); }
+.sp-stars { inset: 0 0 auto 0; height: var(--hz); }
+.sp-stars i { position: absolute; border-radius: 50%; background: #fff; opacity: 0.25; animation: sp-twinkle 3s ease-in-out infinite; }
+
+/* sun: glow behind a disc with horizontal cut-outs, rising at the start */
+.sp-sun { left: 50%; top: calc(var(--hz) - 7vmin); width: min(42vmin, 560px); aspect-ratio: 1; transform: translate(-50%, -50%); animation: sp-sun-rise 2.4s cubic-bezier(0.16, 0.8, 0.24, 1) both; }
+.sp-sun::before { content: ""; position: absolute; inset: -55%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 170, 90, 0.75), rgba(255, 90, 110, 0.28) 55%, transparent 100%); animation: sp-glow 4s ease-in-out infinite; }
+.sp-sun::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, #fff3b8 0%, #ffc66a 34%, #ff7a55 64%, #ff3f8a 100%);
+  -webkit-mask-image: linear-gradient(#000 0 42%, transparent 42% 46%, #000 46% 53%, transparent 53% 58%, #000 58% 65%, transparent 65% 71%, #000 71% 78%, transparent 78% 85%, #000 85%);
+  mask-image: linear-gradient(#000 0 42%, transparent 42% 46%, #000 46% 53%, transparent 53% 58%, #000 58% 65%, transparent 65% 71%, #000 71% 78%, transparent 78% 85%, #000 85%); }
+.sp-haze { left: 0; right: 0; top: calc(var(--hz) - 10%); height: 20%; background: linear-gradient(180deg, transparent, rgba(255, 175, 115, 0.6) 55%, transparent); }
+
+/* mountains on the horizon */
+.sp-mtns { left: -3%; right: -3%; top: calc(var(--hz) - 17vmin); height: 17vmin; }
+.sp-mtn { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.sp-mtn-far { opacity: 0.92; animation: sp-drift 14s ease-in-out infinite alternate; }
+.sp-mtn-near { height: 72%; top: 28%; animation: sp-drift 9s ease-in-out infinite alternate-reverse; }
+
+/* road: a plane tilted away from the viewer; the tile scrolls by exactly one pattern period (180px) per loop */
+.sp-ground { left: 0; right: 0; top: var(--hz); bottom: 0; overflow: hidden; perspective: 640px; perspective-origin: 50% 0; background: linear-gradient(180deg, #2c1148, #120a2b); }
+.sp-plane { position: absolute; left: 50%; top: 0; width: 2400px; height: 4200px; margin-left: -1200px; transform-origin: 50% 0; transform: rotateX(80deg); }
+.sp-tile { position: absolute; left: 0; right: 0; top: -180px; bottom: 0; animation: sp-road 0.5s linear infinite; }
+.sp-tile i { position: absolute; top: 0; bottom: 0; left: 50%; }
+.r-asph { width: 320px; margin-left: -160px; background: linear-gradient(90deg, #33274f, #46376a 50%, #33274f); }
+.r-kl, .r-kr { width: 30px; background: repeating-linear-gradient(180deg, #ff3b4a 0 90px, #ffffff 90px 180px); }
+.r-kl { margin-left: -190px; } .r-kr { margin-left: 160px; }
+.r-dash { width: 10px; margin-left: -5px; background: repeating-linear-gradient(180deg, #ffd27a 0 90px, transparent 90px 180px); }
+.r-el, .r-er { width: 5px; background: rgba(255, 255, 255, 0.85); }
+.r-el { margin-left: -156px; } .r-er { margin-left: 151px; }
+.sp-fog { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 150, 110, 0.9), rgba(255, 110, 120, 0.3) 24%, transparent 58%); pointer-events: none; }
+
+/* the car, seen from behind, on the road */
+.sp-carwrap { left: 50%; bottom: 21%; width: clamp(200px, 40vmin, 470px); transform: translateX(-50%); animation: sp-car-in 0.9s var(--ease) 0.55s both; filter: drop-shadow(0 0 26px rgba(255, 60, 100, 0.35)); }
+.sp-car { display: block; width: 100%; height: auto; overflow: visible; animation: sp-bob 1.1s ease-in-out infinite; }
+.sp-led { animation: sp-led 1.6s ease-in-out infinite; filter: drop-shadow(0 0 5px #ff3355) drop-shadow(0 0 14px rgba(255, 50, 90, 0.8)); }
+.sp-vignette { inset: 0; background: radial-gradient(ellipse at 50% 55%, transparent 52%, rgba(8, 4, 24, 0.7) 100%); pointer-events: none; }
+
+/* logo block */
+.sp-head { left: 0; right: 0; top: clamp(18px, 7vh, 84px); text-align: center; padding: 0 20px; pointer-events: none; }
+.sp-logo.logo { display: inline-block; font-size: clamp(52px, 15vmin, 170px); line-height: 0.95; white-space: nowrap; letter-spacing: 0.02em; transform-origin: 50% 100%; animation: sp-slam 0.95s var(--ease) 0.1s both; }
+.sp-sub { margin: clamp(8px, 1.8vmin, 20px) 0 0; padding-left: 0.42em; font-family: var(--display); font-weight: 700; font-size: clamp(13px, 2.7vmin, 26px); letter-spacing: 0.42em; text-transform: uppercase; color: #ffe2c2; text-shadow: 0 2px 10px rgba(30, 5, 50, 0.7); animation: sp-rise 0.8s var(--ease) 0.8s both; }
+.sp-tag { margin: clamp(6px, 1.3vmin, 14px) 0 0; font-size: clamp(13px, 2.2vmin, 19px); color: var(--muted); text-shadow: 0 2px 8px rgba(20, 4, 40, 0.8); animation: sp-rise 0.8s var(--ease) 1.1s both; }
+
+/* progress, then the call to action in the same spot */
+.sp-foot { left: 0; right: 0; bottom: max(16px, calc(var(--safe-b) + 2.5vh)); display: grid; grid-template-areas: "x" "n"; justify-items: center; align-items: center; gap: 10px; }
+.sp-load, .sp-cta { grid-area: x; }
+.sp-load { width: min(360px, 72vw); text-align: center; transition: opacity 0.35s, transform 0.35s var(--ease); }
+.sp-load .bar { margin: 0 0 9px; height: 8px; box-shadow: 0 0 14px rgba(255, 110, 90, 0.3); }
+.sp-loadlabel { font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+.sp-cta { opacity: 0; visibility: hidden; transform: translateY(12px) scale(0.96); --h: 58px; font-size: 24px; padding: 0 44px; transition: opacity 0.4s, transform 0.5s var(--ease), visibility 0s 0.4s; }
+.sp-note { grid-area: n; font-family: var(--display); font-weight: 600; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); opacity: 0; transition: opacity 0.6s 0.2s; }
+.splash.is-ready .sp-load { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.splash.is-ready .sp-cta { opacity: 1; visibility: visible; transform: none; transition: opacity 0.4s, transform 0.5s var(--ease), visibility 0s; animation: sp-pulse 1.5s ease-in-out 0.5s infinite; }
+.splash.is-ready .sp-note { opacity: 1; }
+
+@keyframes sp-twinkle { 0%, 100% { opacity: 0.18; transform: scale(0.8); } 50% { opacity: 0.95; transform: scale(1.25); } }
+@keyframes sp-sun-rise { from { transform: translate(-50%, 8%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+@keyframes sp-glow { 0%, 100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes sp-drift { from { transform: translateX(-1.2%); } to { transform: translateX(1.2%); } }
+@keyframes sp-road { from { transform: translateY(0); } to { transform: translateY(180px); } }
+@keyframes sp-car-in { from { opacity: 0; transform: translateX(-50%) translateY(46px) scale(0.92); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes sp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
+@keyframes sp-led { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+@keyframes sp-slam { from { opacity: 0; transform: skewX(-8deg) scale(1.45); filter: blur(14px) drop-shadow(0 3px 0 rgba(50, 8, 60, 0.6)); } 60% { opacity: 1; } to { opacity: 1; transform: skewX(-8deg) scale(1); } }
+@keyframes sp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes sp-pulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.05); filter: brightness(1.14) drop-shadow(0 0 14px rgba(255, 90, 80, 0.55)); } }
+
+/* portrait phones / tablets */
+@media (orientation: portrait) {
+  .splash { --hz: 55%; }
+  .sp-sun { width: 78vw; }
+  .sp-mtns { height: 22vw; top: calc(var(--hz) - 22vw); }
+  .sp-logo.logo { font-size: 15.5vw; }
+  .sp-sub { font-size: 3.4vw; letter-spacing: 0.34em; padding-left: 0.34em; }
+  .sp-tag { font-size: 3.6vw; }
+  .sp-carwrap { width: 64vw; bottom: 19%; }
+}
+/* short landscape (phones on their side) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .sp-carwrap { bottom: 25%; width: clamp(150px, 30vmin, 300px); }
+  .sp-tag, .sp-note { display: none; }
+  .sp-cta { --h: 44px; font-size: 20px; padding: 0 34px; }
+  .sp-foot { bottom: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-tile, .sp-car, .sp-led, .sp-stars i, .sp-mtn, .sp-sun::before { animation: none !important; }
+  .sp-sun, .sp-carwrap, .sp-logo.logo, .sp-sub, .sp-tag { animation-duration: 0.01s !important; animation-delay: 0s !important; }
+  .splash.is-ready .sp-cta { animation: none; }
+  .splash.sp-leave { transition-duration: 0.2s; transform: none; filter: none; }
+}

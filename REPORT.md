@@ -122,3 +122,9 @@ Implemented a runtime reshaping of the stock body (roofline, rear deck/glass rak
 | `npm run typecheck`, `npm test` (existing suite), `npm run build` | **not run** (no node_modules, no network) |
 | Running game, in-game before/after, draw calls, fps, driving/drift/boost | **not performed** |
 | three.js glue vs real three 0.180 | **unverified** |
+
+
+---
+
+## Start splash, 2026-10-29
+Animated launch splash with loading progress and a press-to-start prompt; skipped for `?nosplash`, `?debug` and automated browsers. Isolated-browser tests (behaviour, 5 viewports, reduced motion) and 7 unit tests pass; strict `tsc` on the new files passes. Real-game, real-device, `npm run typecheck/test/build` not run here (no dependencies).
