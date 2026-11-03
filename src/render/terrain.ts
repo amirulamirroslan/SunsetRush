@@ -16,12 +16,12 @@ export interface Terrain {
 }
 
 const C = {
-  wetSand: new Color(0xb8956a), sand: new Color(0xf3d9a2), dry: new Color(0xc9c286), grassSun: new Color(0x62b25a), grassA: new Color(0x4aa052),
-  grassB: new Color(0x347f4a), forest: new Color(0x276445), rock: new Color(0x8f8d8a), rock2: new Color(0x9b8f86), peak: new Color(0xaea8a4), gravel: new Color(0x85807a), dryGrass: new Color(0x93a86a),
+  wetSand: new Color(0x9a8464), sand: new Color(0xdccaa0), dry: new Color(0xb6b07c), grassSun: new Color(0x6eaa4e), grassA: new Color(0x4f9246),
+  grassB: new Color(0x3a7a3e), forest: new Color(0x2a583a), rock: new Color(0x827f7a), rock2: new Color(0x8c8479), peak: new Color(0xb9b6b1), gravel: new Color(0x7d7a73), dryGrass: new Color(0x929f66),
 };
 
 const GROUND_GLSL = /* glsl */ `
-varying vec3 vWPos;
+varying vec3 vWPos; varying float vWNy;
 float th(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float tn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(th(i), th(i + vec2(1.0, 0.0)), f.x), mix(th(i + vec2(0.0, 1.0)), th(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -37,7 +37,12 @@ const GROUND_COLOR = /* glsl */ `
   float lum = 0.76 + 0.36 * (n1 * 0.35 + n2 * 0.4 + n3 * 0.25) + (blades - 0.25) * 0.24 * fineK;
   vec3 col = diffuseColor.rgb;
   float grass = smoothstep(0.0, 0.07, col.g - max(col.r * 0.92, col.b));
-  col = mix(col, col * vec3(1.08, 1.02, 0.84), smoothstep(0.55, 0.85, n3) * 0.4 * grass);
+  col = mix(col, col * vec3(1.05, 1.03, 0.9), smoothstep(0.55, 0.85, n3) * 0.4 * grass);
+  // exposed rock: horizontal strata and fracture streaks on steep ground (silhouette alone looked like smooth clay)
+  float slopeK = smoothstep(0.3, 0.68, 1.0 - vWNy);
+  float strata = 0.5 + 0.5 * sin(vWPos.y * 1.9 + tf(w * 0.045) * 7.0);
+  float streak = tn(vec2(w.x * 0.9 + w.y * 0.7, vWPos.y * 0.35));
+  col *= mix(1.0, 0.74 + 0.3 * strata + 0.12 * (streak - 0.5), slopeK * (1.0 - grass * 0.7));
   col = mix(col, col * vec3(0.78, 0.95, 0.86), smoothstep(0.6, 0.9, n2) * 0.35 * grass);
   diffuseColor.rgb = col * lum;
 }
@@ -114,13 +119,13 @@ export function buildTerrain(track: Track): Terrain {
   const mat = new MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.96, metalness: 0 });
   // world-space multi-scale detail on top of the baked colours: mottled grass, sun-dried patches, blade grain and micro-relief
   mat.onBeforeCompile = sh => {
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPos; varying float vWNy;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz; vWNy = normalize(mat3(modelMatrix) * objectNormal).y;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + GROUND_GLSL)
       .replace('#include <color_fragment>', '#include <color_fragment>\n' + GROUND_COLOR)
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GROUND_NORMAL);
   };
-  mat.customProgramCacheKey = () => 'terrain-detail-v2';
+  mat.customProgramCacheKey = () => 'terrain-detail-v3';
   const mesh = new Mesh(geo, mat);
   mesh.receiveShadow = true; mesh.matrixAutoUpdate = false; mesh.updateMatrix();
 

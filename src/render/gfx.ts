@@ -7,6 +7,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { TIERS, type Tier } from './quality';
 import { setMaxAnisotropy } from './textures';
+import type { Atmosphere } from './atmosphere';
 
 /** Owns the WebGL renderer, the optional bloom pipeline and the resolution / tier switches. */
 export class Gfx {
@@ -18,6 +19,7 @@ export class Gfx {
   private bloom: UnrealBloomPass | null = null;
   private width = 1; private height = 1;
   private readonly light: { sun: DirectionalLight | null } = { sun: null };
+  private bloomStrength = 0.55;
 
   constructor(host: HTMLElement, tier: Tier, pixelRatio: number) {
     this.tier = tier;
@@ -30,6 +32,14 @@ export class Gfx {
     host.appendChild(this.renderer.domElement);
     setMaxAnisotropy(Math.min(8, this.renderer.capabilities.getMaxAnisotropy()));
     this.applyTier();
+  }
+
+  /** Exposure, bloom and the screen vignette follow the lighting preset rather than being fixed for one time of day. */
+  applyAtmosphere(a: Atmosphere): void {
+    this.renderer.toneMappingExposure = a.exposure;
+    this.bloomStrength = a.bloomStrength;
+    if (this.bloom) this.bloom.strength = a.bloomStrength;
+    this.renderer.domElement.parentElement?.style.setProperty('--vignette', String(a.vignette));
   }
 
   bindSun(sun: DirectionalLight): void { this.light.sun = sun; this.applyShadow(); }
@@ -57,7 +67,7 @@ export class Gfx {
     const rt = new WebGLRenderTarget(Math.max(1, this.width), Math.max(1, this.height), { type: HalfFloatType, samples: TIERS[this.tier].msaa ? 4 : 0 });
     this.composer = new EffectComposer(this.renderer, rt);
     this.renderPass = new RenderPass(new Scene(), new PerspectiveCamera());
-    this.bloom = new UnrealBloomPass(new Vector2(this.width, this.height), 0.55, 0.85, 1.0);
+    this.bloom = new UnrealBloomPass(new Vector2(this.width, this.height), this.bloomStrength, 0.85, 1.0);
     this.composer.addPass(this.renderPass); this.composer.addPass(this.bloom); this.composer.addPass(new OutputPass());
   }
 

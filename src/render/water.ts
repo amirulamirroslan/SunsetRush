@@ -1,5 +1,6 @@
 import { Color, DoubleSide, Mesh, PlaneGeometry, ShaderMaterial, Vector4, type DataTexture } from 'three';
-import { PALETTE, SKY_GLSL, SUN_DIR, hexToVec3 } from './sky';
+import type { Atmosphere } from './atmosphere';
+import { SKY_GLSL, hexToVec3, type SkyUniforms } from './sky';
 import { TERRAIN } from './terrainField';
 
 const vert = /* glsl */ `
@@ -12,7 +13,7 @@ void main() {
 
 const frag = /* glsl */ `
 uniform float uTime; uniform sampler2D uHeight; uniform vec4 uBounds;
-uniform vec3 uSun; uniform vec3 uFog; uniform float uFogDensity; uniform float uSparkle;
+uniform vec3 uSun; uniform vec3 uFog; uniform float uFogDensity; uniform float uSparkle; uniform vec3 uSparkleCol;
 varying vec3 vWorld;
 ${SKY_GLSL}
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -52,13 +53,13 @@ void main() {
   vec3 rr = reflect(-uSun, n);
   float spec = pow(max(dot(rr, v), 0.0), 220.0) * 6.0 + pow(max(dot(rr, v), 0.0), 22.0) * 0.35;
   float sparkle = 0.55 + 0.45 * vnoise(p * 1.7 + t * 2.1);
-  col += vec3(1.0, 0.78, 0.48) * spec * sparkle * uSparkle;
+  col += uSparkleCol * spec * sparkle * uSparkle;
 
   // foam along the shoreline (animated surf line)
   float surf = 0.35 + 0.3 * sin(t * 0.9 + vnoise(p * 0.07) * 6.0);
   float foam = (1.0 - smoothstep(0.0, 0.55, abs(depth - surf * 0.5))) * 0.55 + (1.0 - smoothstep(0.0, 0.35, depth)) * 0.85;
   foam *= 0.55 + 0.45 * vnoise(p * 1.3 + t * 0.6);
-  col = mix(col, vec3(1.0, 0.97, 0.9), clamp(foam, 0.0, 1.0) * 0.9);
+  col = mix(col, vec3(0.98, 0.99, 1.0), clamp(foam, 0.0, 1.0) * 0.9);
 
   float dist = length(cameraPosition - vWorld);
   float f = 1.0 - exp(-uFogDensity * uFogDensity * dist * dist);
@@ -72,19 +73,26 @@ void main() {
 export class Ocean {
   readonly mesh: Mesh;
   private readonly mat: ShaderMaterial;
-  constructor(heightTexture: DataTexture, fogDensity: number) {
+  constructor(heightTexture: DataTexture, atmosphere: Atmosphere, sky: SkyUniforms) {
     const { minX, maxX, minZ, maxZ } = TERRAIN;
     this.mat = new ShaderMaterial({
       vertexShader: vert, fragmentShader: frag, side: DoubleSide, fog: false,
       uniforms: {
         uTime: { value: 0 }, uHeight: { value: heightTexture }, uBounds: { value: new Vector4(minX, minZ, maxX - minX, maxZ - minZ) },
-        uSun: { value: SUN_DIR.clone() }, uFog: { value: new Color(...hexToVec3(PALETTE.fog)) }, uFogDensity: { value: fogDensity }, uSparkle: { value: 1 },
+        ...sky, uFog: { value: new Color() }, uFogDensity: { value: atmosphere.fogDensity }, uSparkle: { value: 1 }, uSparkleCol: { value: new Color() },
       },
     });
+    this.setAtmosphere(atmosphere);
     const geo = new PlaneGeometry(9000, 9000, 1, 1); geo.rotateX(-Math.PI / 2);
     this.mesh = new Mesh(geo, this.mat);
     this.mesh.position.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     this.mesh.frustumCulled = false; this.mesh.renderOrder = -10;
+  }
+  /** Sky colours and sun direction are shared by reference with the sky dome; fog and glitter are set here (raw sRGB, converted in the shader). */
+  setAtmosphere(a: Atmosphere): void {
+    (this.mat.uniforms.uFog.value as Color).setRGB(...hexToVec3(a.fog));
+    (this.mat.uniforms.uSparkleCol.value as Color).setRGB(...hexToVec3(a.sparkle));
+    this.mat.uniforms.uFogDensity.value = a.fogDensity;
   }
   update(time: number): void { this.mat.uniforms.uTime.value = time; }
   dispose(): void { this.mesh.geometry.dispose(); this.mat.dispose(); }

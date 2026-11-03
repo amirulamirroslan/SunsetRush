@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import { SUN_DIR } from '../render/sky';
+import { resolveAtmosphere } from '../render/atmosphere';
 import { Gfx } from '../render/gfx';
 import { World } from '../render/world';
 import { CarView, type CarSnapshot } from '../render/carModel';
@@ -82,8 +82,10 @@ export class Game {
     this.gfx.renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); this.fatal('The graphics context was lost. Please reload the page.'); });
     await step(0.2, 'Building the island');
     const asphalt = await loadAsphalt(import.meta.env.BASE_URL, Math.min(8, this.gfx.renderer.capabilities.getMaxAnisotropy())).catch(() => undefined);
-    this.world = new World(this.gfx.renderer, this.track, this.tier, COURSE.boostPads, asphalt);
-    this.gfx.bindSun(this.world.sun);
+    // lighting / atmosphere preset: natural daylight by default; `?light=golden|overcast` swaps it (future tracks choose their own)
+    const atmosphere = resolveAtmosphere(q.get('light'));
+    this.world = new World(this.gfx.renderer, this.track, this.tier, COURSE.boostPads, asphalt, atmosphere);
+    this.gfx.bindSun(this.world.sun); this.gfx.applyAtmosphere(atmosphere);
     await step(0.45, 'Planting palms');
     this.scenery = new Scenery(this.track, this.world.terrain, this.tier);
     this.landmarks = new Landmarks(this.track, this.world.terrain, this.tier);
@@ -97,8 +99,8 @@ export class Game {
       this.smokeT.push(0); this.skidTrails.push(new SkidTrail(), new SkidTrail());
     }
     this.effects = new Effects(this.world.scene, TIERS[this.tier].particles, TIERS[this.tier].skidMarks);
-    // optional: Poly Haven sunset HDRI as the car-only reflection environment (`?hdri`)
-    if (q.has('hdri')) void import('../render/hdri').then(m => m.loadCarEnvironment(this.gfx.renderer, Math.atan2(SUN_DIR.z, SUN_DIR.x)))
+    // optional: Poly Haven HDRI matching the lighting preset as the car-only reflection environment (`?hdri`)
+    if (q.has('hdri')) void import('../render/hdri').then(m => m.loadCarEnvironment(this.gfx.renderer, Math.atan2(atmosphere.sunDir.z, atmosphere.sunDir.x), atmosphere.hdri))
       .then(env => { for (const v of this.views) v.setEnvMap(env.texture, env.rotationY); }).catch(e => console.warn('HDRI unavailable, using the procedural sky', e));
     this.rig.reducedMotion = this.reduced;
     await step(0.85, 'Painting the cars');
@@ -469,6 +471,8 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ debug hooks (only exposed with ?debug)
+  /** Debug: switch the lighting preset at runtime (`daylight`, `golden`, `overcast`). */
+  debugSetLighting(id: string): void { const a = resolveAtmosphere(id); this.world.setAtmosphere(a); this.gfx.applyAtmosphere(a); }
   debugState(): Record<string, unknown> {
     const s = this.sim, p = s?.cars[0];
     return { mode: this.mode, tier: this.tier, paused: this.paused, stage: s?.stage, lap: p?.lap, place: s?.ranks[0], speed: p?.speed, raceTime: s?.raceTime, coins: this.save.data.coins, frames: this.time };

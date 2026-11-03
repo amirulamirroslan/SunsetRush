@@ -55,7 +55,7 @@ export function palmGeometry(seed = 1): BufferGeometry {
   const lean = 1.3, H = 7.2;
   const curve = new CatmullRomCurve3([new Vector3(0, 0, 0), new Vector3(lean * 0.15, H * 0.35, 0), new Vector3(lean * 0.55, H * 0.7, 0), new Vector3(lean, H, 0)]);
   const trunk = new TubeGeometry(curve, 7, 0.24, 6, false);
-  b.add(trunk, (_x, y) => lerpC(0x5e6068, 0x8c8f98, (Math.sin(y * 5) * 0.5 + 0.5) * 0.7 + y / H * 0.3));
+  b.add(trunk, (_x, y) => lerpC(0x7b6c58, 0xa39382, (Math.sin(y * 5) * 0.5 + 0.5) * 0.7 + y / H * 0.3));
   const top = new Vector3(lean, H, 0);
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2 + rng.range(-0.15, 0.15), up = rng.range(-0.1, 0.55);
@@ -98,7 +98,7 @@ export function rockGeometry(seed = 3): BufferGeometry {
   }
   g.computeVertexNormals();
   const b = new GeoBuilder();
-  b.add(g, (x, y, z) => lerpC(0x5a5e68, 0x9a9da8, (y + 0.8) / 1.6 * 0.6 + fbm2(x * 3, z * 3, 2) * 0.4));
+  b.add(g, (x, y, z) => lerpC(0x5f5d59, 0x9d9a93, (y + 0.8) / 1.6 * 0.6 + fbm2(x * 3, z * 3, 2) * 0.4));
   const out = b.build();
   return out;
 }

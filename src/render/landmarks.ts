@@ -14,12 +14,12 @@ type Pt = { x: number; y: number; z: number; heading: number; tx: number; tz: nu
 const pt = (): Pt => ({ x: 0, y: 0, z: 0, heading: 0, tx: 0, tz: 0 });
 
 const BRANDS: BannerSpec[] = [
-  { text: 'COCO FIZZ', sub: 'TASTE THE SUNSET', bg: ['#ff5a3c', '#ffb03a'], fg: '#ffffff', accent: '#ffffff' },
-  { text: 'SOLARIS', sub: 'POWER FROM THE SUN', bg: ['#1b2a6b', '#4a3fa8'], fg: '#ffd35a', accent: '#ff8a3a' },
+  { text: 'COCO FIZZ', sub: 'STAY FRESH', bg: ['#e8402f', '#f0662f'], fg: '#ffffff', accent: '#ffffff' },
+  { text: 'SOLARIS', sub: 'POWER FROM THE SUN', bg: ['#14234f', '#27408a'], fg: '#ffffff', accent: '#ffc23a' },
   { text: 'WAVECREST', sub: 'SURF · SAIL · SPLASH', bg: ['#0b8fb0', '#20d6c0'], fg: '#ffffff', accent: '#ffffff' },
-  { text: 'TURBO TUNA', sub: 'FAST FOOD, FASTER', bg: ['#e8334a', '#ff7a59'], fg: '#fff3dc', accent: '#ffd35a' },
+  { text: 'TURBO TUNA', sub: 'FAST FOOD, FASTER', bg: ['#c9282f', '#e0443a'], fg: '#ffffff', accent: '#ffd35a' },
   { text: 'ISLE AIR', sub: 'FLY THE COVE', bg: ['#f4efe6', '#d8e6f0'], fg: '#1b2a6b', accent: '#2b6bff' },
-  { text: 'NEON NOODLE', sub: 'OPEN LATE', bg: ['#2b0a4a', '#7a1fa8'], fg: '#7cf0ff', accent: '#ff4fa3' },
+  { text: 'NEON NOODLE', sub: 'OPEN LATE', bg: ['#161b26', '#2b3446'], fg: '#7cf0ff', accent: '#ff4fa3' },
 ];
 
 /** Gantry, grandstand, arch, billboards and lighthouse: the landmarks that give the circuit its identity. */
@@ -52,8 +52,8 @@ export class Landmarks {
         const m = new Mesh(this.keep(new BoxGeometry(postX * 2 - 1, 2.2, 0.05)), this.keep(new MeshBasicMaterial({ map: tex, toneMapped: false })));
         m.position.set(0, 11.2, flip ? 0.8 : -0.8); if (flip) m.rotation.y = Math.PI; return m;
       };
-      g.add(mkBanner({ text: 'SUNSET RUSH  ·  CORAL COVE CIRCUIT', bg: ['#ff6a3a', '#ff3f8a'], fg: '#ffffff', accent: '#ffd35a' }, false));
-      g.add(mkBanner({ text: 'CHEQUERED FLAG  ·  WELL DRIVEN', bg: ['#1b2a6b', '#4a3fa8'], fg: '#ffd35a', accent: '#ff8a3a' }, true));
+      g.add(mkBanner({ text: 'SUNSET RUSH  ·  CORAL COVE CIRCUIT', bg: ['#161b26', '#2b3446'], fg: '#ffffff', accent: '#ffc23a' }, false));
+      g.add(mkBanner({ text: 'CHEQUERED FLAG  ·  WELL DRIVEN', bg: ['#14234f', '#27408a'], fg: '#ffffff', accent: '#ffc23a' }, true));
       // checker valance
       const checker = new Mesh(this.keep(new BoxGeometry(postX * 2 - 1, 0.5, 0.06)), this.keep(new MeshBasicMaterial({ color: 0xffffff }))); checker.position.set(0, 9.7, -0.8); g.add(checker);
       // start lights: three reds that count down, then green
@@ -87,7 +87,7 @@ export class Landmarks {
       for (let t = 0; t < tiers; t++) {
         const top = (t + 1) * rise;
         b.add(new BoxGeometry(depth, top + 8, len), 0x59607a, xform(x0 - depth * (t + 0.5), (top - 8) / 2, 0));
-        b.add(new BoxGeometry(depth * 0.96, 0.08, len * 0.995), t % 2 ? 0xff7a59 : 0xffc23a, xform(x0 - depth * (t + 0.5), top + 0.04, 0));
+        b.add(new BoxGeometry(depth * 0.96, 0.08, len * 0.995), t % 2 ? 0xd9d9d6 : 0x9aa0a8, xform(x0 - depth * (t + 0.5), top + 0.04, 0));
       }
       const roofY = tiers * rise + 4.6;
       b.add(new BoxGeometry(depth * tiers + 3, 0.3, len + 4), 0xf4efe6, xform(x0 - depth * tiers / 2 - 0.2, roofY, 0, 1, 1, 1, 0, 0, 0.0));

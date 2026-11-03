@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const [base = 'http://127.0.0.1:4173/', out = 'snaps', tier = 'medium', W = '960', H = '540', steps = '0,9,9', extra = ''] = process.argv.slice(2);
 fs.mkdirSync(out, { recursive: true });
 const chromePath = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome';
-const browser = await chromium.launch({ executablePath: chromePath, args: ['--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: chromePath, args: ['--use-angle=swiftshader', '--use-gl=angle', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu-sandbox'] });
 const page = await (await browser.newContext({ viewport: { width: +W, height: +H } })).newPage();
 const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 200)); });

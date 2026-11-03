@@ -141,7 +141,7 @@ export function buildRoad(track: Track, pads: readonly number[], asphalt?: Aspha
     // real PBR asphalt tiled every 3 m, with the lane markings on a thin overlay
     for (const t of [asphalt.map, asphalt.normal, asphalt.roughness, asphalt.ao]) keep(t);
     road = new Mesh(keep(ribbon(track, { latA: -hw, latB: hw, yOff: 0.0, vScale: 3, uRepeat: (hw * 2) / 3, colorNoise: 0.22 })),
-      keep(new MeshStandardMaterial({ map: asphalt.map, normalMap: asphalt.normal, normalScale: new Vector2(0.9, 0.9), roughnessMap: asphalt.roughness, roughness: 1, aoMap: asphalt.ao, aoMapIntensity: 0.8, metalness: 0, vertexColors: true, color: 0xf0eef6 })));
+      keep(new MeshStandardMaterial({ map: asphalt.map, normalMap: asphalt.normal, normalScale: new Vector2(0.9, 0.9), roughnessMap: asphalt.roughness, roughness: 1, aoMap: asphalt.ao, aoMapIntensity: 0.8, metalness: 0, vertexColors: true, color: 0xf4f4f2 })));
     const marks = keep(makeRoadMarkings());
     const lines = new Mesh(keep(ribbon(track, { latA: -hw, latB: hw, yOff: 0.012, vScale: 16 })),
       keep(new MeshStandardMaterial({ map: marks, transparent: true, depthWrite: false, roughness: 0.78, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
@@ -172,7 +172,7 @@ export function buildRoad(track: Track, pads: readonly number[], asphalt?: Aspha
   const shoulderTex = keep(makeShoulder());
   // runoff apron: the same real asphalt, lighter and rougher, so the edge of the track reads as engineered tarmac
   const shoulderMat = asphalt
-    ? keep(new MeshStandardMaterial({ map: asphalt.map, normalMap: asphalt.normal, normalScale: new Vector2(0.7, 0.7), roughness: 1, color: 0xbfbfcb, metalness: 0 }))
+    ? keep(new MeshStandardMaterial({ map: asphalt.map, normalMap: asphalt.normal, normalScale: new Vector2(0.7, 0.7), roughness: 1, color: 0xc6c6c2, metalness: 0 }))
     : keep(new MeshStandardMaterial({ map: shoulderTex, roughness: 0.95 }));
   const wallIn = track.wallOffset - BARRIER_FACE;
   for (const side of [-1, 1]) {

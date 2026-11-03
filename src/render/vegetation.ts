@@ -47,7 +47,7 @@ function leafColor(x: number, y: number, z: number, cx: number, cy: number, cz: 
 export function broadleafMesh(seed: number, lod: 0 | 1): BufferGeometry {
   const rng = new Rng(seed), b = new GeoBuilder();
   const H = rng.range(3.4, 4.3);
-  b.add(new CylinderGeometry(0.2, 0.4, H, lod ? 5 : 8, lod ? 1 : 3), (_x, y) => lerpC(0x34383e, 0x5e6068, y / H), xform(0, H / 2, 0));
+  b.add(new CylinderGeometry(0.2, 0.4, H, lod ? 5 : 8, lod ? 1 : 3), (_x, y) => lerpC(0x4a3e33, 0x7a6b5a, y / H), xform(0, H / 2, 0));
   if (!lod) {
     b.add(new CylinderGeometry(0.42, 0.78, 0.55, 8, 1), 0x30281f, xform(0, 0.27, 0));
     for (let i = 0; i < 3; i++) {
@@ -102,7 +102,7 @@ export function rockMesh(seed: number, lod: 0 | 1): BufferGeometry {
   const b = new GeoBuilder();
   b.add(g, (x, y, z) => {
     const band = 0.86 + 0.14 * Math.sin(y * 9 + fbm2(x * 2, z * 2, 2) * 5);
-    const c = lerpC(0x555a64, 0x9a9ca6, 0.5 + y * 0.28 + (fbm2(x * 3.1 + seed, z * 3.1, 3) - 0.5) * 0.6).multiplyScalar(band);
+    const c = lerpC(0x5c5a57, 0x9a978f, 0.5 + y * 0.28 + (fbm2(x * 3.1 + seed, z * 3.1, 3) - 0.5) * 0.6).multiplyScalar(band);
     const moss = smoothstep(0.1, 0.6, y) * clamp01(0.3 + (fbm2(x * 4 + 9, z * 4 - 2, 2) - 0.35) * 2.2);
     c.lerp(new Color(0x3f6a45), moss * 0.7);
     return c.multiplyScalar(0.7 + 0.3 * clamp01((y + 0.8) / 1.4));
@@ -156,7 +156,7 @@ export function slabRockMesh(seed: number, lod: 0 | 1): BufferGeometry {
     const sx = rng.range(0.9, 1.7), sy = rng.range(0.7, 1.5), sz = rng.range(0.8, 1.4), ox = i === 0 ? 0 : rng.range(-1.2, 1.2), oz = i === 0 ? 0 : rng.range(-1.2, 1.2);
     b.add(g, (x, y, _z) => {
       const band = 0.8 + 0.2 * Math.sin(y * 7.5 + sd);
-      const c = lerpC(0x5d5a60, 0x9c968f, 0.45 + y * 0.3 + (noise2(x * 3 + sd, y * 2) - 0.5) * 0.5).multiplyScalar(band);
+      const c = lerpC(0x625f5a, 0xa09a92, 0.45 + y * 0.3 + (noise2(x * 3 + sd, y * 2) - 0.5) * 0.5).multiplyScalar(band);
       c.lerp(new Color(0x45663f), smoothstep(0.35, 0.9, y) * 0.35 * (noise2(x * 5, sd) > 0.45 ? 1 : 0.3));
       return c.multiplyScalar(0.68 + 0.32 * clamp01((y + 1) / 1.7));
     }, xform(ox, sy * 0.55 - 0.2, oz, sx, sy, sz, rng.range(0, 6.28), rng.range(-0.18, 0.18), rng.range(-0.18, 0.18)));

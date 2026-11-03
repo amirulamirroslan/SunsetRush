@@ -1,3 +1,30 @@
+# Art direction change: Premium Global Motorsport (current)
+
+**The sunset theme is discontinued.** Target: premium, realistic, modern 3D racing; natural daylight; multiple geographic environments (alpine, tropical coast, city, desert, forest, snow). Game name/logo/package/repo name are intentionally unchanged for now. **No Git/GitHub for this task**: older lines below about branches, commits and pushes are superseded; deliver ZIP checkpoints only.
+
+## What was done (first implementation, natural-daylight reference)
+- New `src/render/atmosphere.ts`: lighting/atmosphere **presets** (`daylight` default, `golden`, `overcast`). Each holds sun direction/colour/intensity, hemisphere fill, env-light strength, fog, exposure, sky gradient, cloud style, water glitter, mist, mountain tint, bloom, vignette and the optional HDRI choice. A track picks a preset; `World.setAtmosphere()` swaps it at runtime (rebuilds env map + mountains).
+- `sky.ts`: sky/water colours are now uniforms (no constants in shaders); clouds are cumulus with sun-side self-shadowing and a cover control. `water.ts` shares the sky uniforms so reflections match. `world.ts`, `gfx.ts` (exposure, bloom, `--vignette` CSS var), `Game.ts` (`?light=daylight|golden|overcast`, debug `__rush.debugSetLighting(id)`), `hdri.ts` (HDRI per preset: park/forest/sunset).
+- `backdrop.ts`: natural grey-blue alpine ranges with snow caps; the gap carved for a low sun only applies to low-sun presets; mist tint from the preset.
+- `terrain.ts`: more natural palette; rock strata/streaks on steep slopes; less warm grass tint. Trunks/rocks returned from sunset-compensating blue-grey to natural bark/stone (`vegetation.ts`, `propGeo.ts`). Asphalt tint neutral (`roadMesh.ts`). Billboard/banner copy and colours de-sunsetted (`landmarks.ts`). Screen vignette neutral black (`styles.css`).
+- Tools: `tools/lighting.mjs` (same frame under every preset in one session); `tools/snap.mjs` got `--disable-dev-shm-usage` flags (headless Chromium kept closing without them).
+
+## Evidence (software GL, medium tier, 960x540, same race moments)
+`docs/art-direction-daylight/`: `before/` and `after/` (menu, setup, drive-0/1/2, pause), side-by-sides `compare-drive-1.png`, `compare-drive-2.png`, presets `compare-presets.png` (+ `presets/`), `iter2/` (intermediate).
+
+## Verified
+`tsc` clean; `vitest` 12 files / 74 tests pass (3 new in `atmosphere.test.ts`: default is daylight, no orange/pink/purple in daylight atmosphere, presets valid/distinct); `vite build` OK; browser runs with 0 console errors (before, after, presets).
+**Also verified after the first checkpoint (software GL, one frame each):** high tier 960x540 (`docs/art-direction-daylight/high/`, bloom does not blow out sky/clouds) and low tier phone portrait 390x844 (`mobile/`, HUD intact).
+**Not verified:** phone landscape and touch controls, draw-call/triangle delta (only trees/rocks/terrain shader changed; sky has one extra fbm sample per pixel), real GPU fps, `?hdri` path, golden/overcast beyond the one frame, audio/touch.
+
+## Deliberately left (branding / not in scope)
+Splash tagline "Chase the sunset", default livery "Sunset Orange" (save-compat), save key `sunset-rush.save.v1`, menu title, purple UI overlay scrims, orange UI accent. Car model unchanged (still arcade-looking); vegetation still stylised low-poly.
+
+## Next candidates
+1. Measure `tools/measure.mjs` on all tiers; check phone portrait/landscape. 2. Real asphalt/kerb infrastructure upgrades (lane edge lines, gantries, signage). 3. Higher-fidelity vegetation/terrain (the biggest remaining gap to "premium"). 4. Second environment (e.g. alpine or desert) as a new track using its own preset. 5. Replace the car model (licence-checked).
+
+---
+
 # Sunset Rush — Development Handover
 
 Repository: https://github.com/amirulamirroslan/SunsetRush · branch `sunset-rush-cloud-development` (never force-push; never touch `main`).
@@ -189,3 +216,16 @@ Owner chose "rebuild the current car's body" instead of a third-party model. Imp
 ## Session 5 (2026-10-29): start splash screen
 
 Added an animated start splash (sunset, sun, mountains, scrolling road, the car, logo, loading bar, then "Press any key / Tap to start"). See `docs/splash/README.md` for behaviour, skip rules (`?nosplash`, `?debug`, automated browsers), files and what was and was not verified. Code: new `src/ui/splash.ts`, `splash.css`, `splashLogic.ts`, `splashLogic.test.ts`; `src/main.ts` has 4 small edits. Not verified: inside the real game with three.js, on real devices, `npm run typecheck/test/build` (run them before pushing). NOTE: this project copy was built from a base that lacks `src/render/vegetation.test.ts` and `src/sim/racing.test.ts` from the live repo, so prefer applying only the splash files to the real repo.
+
+
+---
+
+## Session 6 (2026-10-30): visual reference board, audit and gap analysis (NO code changes)
+
+Brief: use `SunsetRush_Racing_Game_Showcase.png` (nine-panel concept board) as the art direction for a staged graphics upgrade (terrain, road, lighting, environments, camera, HUD, quality tiers), proving each stage with real gameplay screenshots.
+
+**Done:** audited the render/HUD/settings code and wrote `docs/visual-reference/GAP_ANALYSIS.md` (what exists, panel-by-panel gaps, budget rules, 8-stage plan with evidence gates, decisions needed, how to unblock). Added `reference-board.png`, `compare-hero.png`, `compare-hud.png` (reference vs the one real in-game frame from an earlier session).
+
+**Not done, and why:** nothing was implemented. This session had no `node_modules`, no network and no ZIP of the live repo, so the game could not be run: no gameplay screenshots, no draw-call or fps numbers. The brief forbids claiming quality without them. **No reference quality has been achieved.**
+
+**Next:** answer the 8 decisions in section 6 of the gap analysis, then supply a runnable copy (Route A: latest repo ZIP plus `node_modules/three` and `@pmndrs`; Route B: your own captures from `npm run dev`). Start with Stage 0 (baseline capture rig), then Stage 1 (light and atmosphere). Baseline to protect (earlier sessions, software GL, 640x360): Medium about 759 draw calls / 0.89 M tris, Low about 787 / 0.65 M.

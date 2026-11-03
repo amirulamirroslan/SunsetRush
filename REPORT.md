@@ -1,3 +1,9 @@
+# Premium Global Motorsport pass: natural daylight reference
+
+See the top section of `HANDOVER.md` for the full change list, evidence and verification. Summary: sunset identity removed from the rendering pipeline and replaced by data-driven lighting presets (`src/render/atmosphere.ts`; default natural daylight), with a rebuilt sky/clouds, alpine snow-capped backdrop, more natural terrain/vegetation/asphalt colours, and neutral grading. Before/after screenshots: `docs/art-direction-daylight/`. Tests 74/74, build OK. High tier and phone-portrait frames checked (one frame each). Not measured: draw calls, real-GPU fps, phone landscape/touch.
+
+---
+
 # Sunset Rush — world + UI polish pass (checkpoint 02)
 
 ## Asset research (npm / GitHub, inspected from the real package files)
@@ -128,3 +134,9 @@ Implemented a runtime reshaping of the stock body (roofline, rear deck/glass rak
 
 ## Start splash, 2026-10-29
 Animated launch splash with loading progress and a press-to-start prompt; skipped for `?nosplash`, `?debug` and automated browsers. Isolated-browser tests (behaviour, 5 viewports, reduced motion) and 7 unit tests pass; strict `tsc` on the new files passes. Real-game, real-device, `npm run typecheck/test/build` not run here (no dependencies).
+
+
+---
+
+## Visual reference audit, 2026-10-30
+Audit and gap analysis only (`docs/visual-reference/GAP_ANALYSIS.md`); no game code changed. Largest gaps vs the board: single golden-hour environment (no snow, desert or city), camera distance and colour grade, no motion blur, boxy HUD layout, one-row graphics setting. Not run: game, screenshots, typecheck/test/build, performance. Baseline numbers quoted are from earlier sessions (software GL), not re-measured.

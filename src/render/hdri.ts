@@ -1,7 +1,9 @@
+import type { Atmosphere } from './atmosphere';
 import { DataUtils, EquirectangularReflectionMapping, HalfFloatType, PMREMGenerator, type DataTexture, type Texture, type WebGLRenderer, type WebGLRenderTarget } from 'three';
 
 /**
- * Optional car-reflection environment: the Poly Haven "sunset" HDRI (CC0) as shipped, downsized to 512px, by `@pmndrs/assets`.
+ * Optional car-reflection environment: a Poly Haven HDRI (CC0) as shipped, downsized to 512px, by `@pmndrs/assets`. Which one comes from
+ * the lighting preset (`Atmosphere.hdri`: park for daylight, forest for overcast, sunset for golden hour).
  * 512px is far too soft to be a backdrop or scene lighting, so it is only ever used as the `envMap` of car paint and glass.
  * Enabled with `?hdri` (off by default); the code and the ~150 KB image load lazily and nothing is fetched otherwise.
  */
@@ -27,8 +29,16 @@ export function brightestAzimuth(data: ArrayLike<number>, width: number, height:
 /** Y rotation to give `Material.envMapRotation` so the HDRI's sun appears at `sceneSunAzimuth` (sampled direction = R(theta) * world direction). */
 export const alignRotationY = (sceneSunAzimuth: number, hdriSunAzimuth: number): number => sceneSunAzimuth - hdriSunAzimuth;
 
-export async function loadCarEnvironment(renderer: WebGLRenderer, sceneSunAzimuth: number): Promise<CarEnvironment> {
-  const [{ EXRLoader }, hdri] = await Promise.all([import('three/addons/loaders/EXRLoader.js'), import('@pmndrs/assets/hdri/sunset.exr')]);
+const HDRI_SOURCES: Record<Atmosphere['hdri'], () => Promise<{ default: string }>> = {
+  park: () => import('@pmndrs/assets/hdri/park.exr'),
+  forest: () => import('@pmndrs/assets/hdri/forest.exr'),
+  sunset: () => import('@pmndrs/assets/hdri/sunset.exr'),
+  dawn: () => import('@pmndrs/assets/hdri/dawn.exr'),
+  city: () => import('@pmndrs/assets/hdri/city.exr'),
+};
+
+export async function loadCarEnvironment(renderer: WebGLRenderer, sceneSunAzimuth: number, kind: Atmosphere['hdri'] = 'park'): Promise<CarEnvironment> {
+  const [{ EXRLoader }, hdri] = await Promise.all([import('three/addons/loaders/EXRLoader.js'), HDRI_SOURCES[kind]()]);
   const src = await new EXRLoader().setDataType(HalfFloatType).loadAsync(hdri.default) as DataTexture;
   src.mapping = EquirectangularReflectionMapping;
   const img = src.image as { data: ArrayLike<number>; width: number; height: number };
