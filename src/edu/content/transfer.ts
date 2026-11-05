@@ -108,6 +108,66 @@ const GENS: Record<ConceptId, [Gen, Gen]> = {
       medium: { stem: 'You travel at 15 m/s. How many metres is a 2-second gap?', answer: 30, unit: 'm', hint: '15 × 2.', explanation: '15 × 2 = 30 m.' },
       hard: { stem: 'At 90 km/h a driver wants a 3-second gap. How many extra metres of gap are needed if the speed rises to 126 km/h?', answer: (126 - 90) / KMH * 3, unit: 'm', rel: 0.02, hint: 'Find the difference in speed (m/s) and multiply by 3.', explanation: '36 km/h = 10 m/s. 10 × 3 = 30 m extra.' } }),
   ],
+  'auto.gearing': [
+    () => ({
+      easy: { stem: 'A bicycle wheel turns 5 times a second and each turn moves the bike 2 m. How fast is the bike going?', right: '10 m/s', wrong: ['2.5 m/s', '7 m/s', '0.4 m/s'], hint: 'Turns per second × metres per turn.', explanation: '5 × 2 = 10 m/s.' },
+      medium: { stem: 'A train wheel with a circumference of 3.0 m turns 8 times a second. What is the speed in km/h?', answer: 8 * 3 * 3.6, unit: 'km/h', rel: 0.01, hint: '8 × 3 gives m/s.', formula: 'v = turns per second × circumference', explanation: `8 × 3.0 = 24 m/s = ${fmt(8 * 3 * 3.6, 1)} km/h.` },
+      hard: { stem: 'A truck has 3.0 m wheels and a total gear ratio of 5.0 : 1. The engine turns at 2,400 rpm. What is the truck\'s speed in km/h?', answer: 2400 / 5 * 3 / 60 * 3.6, unit: 'km/h', rel: 0.015, hint: 'Wheel rpm = engine rpm ÷ ratio.', formula: 'v = (engine rpm ÷ ratio) × C ÷ 60', explanation: `Wheel rpm = 2,400 ÷ 5 = 480. Speed = 480 × 3 ÷ 60 = 24 m/s = ${fmt(2400 / 5 * 3 / 60 * 3.6, 1)} km/h.` } }),
+    () => ({
+      easy: { stem: 'An engine turns 3,000 times a minute and the gear ratio is 3 : 1. How many times a minute do the wheels turn?', right: '1,000 times', wrong: ['9,000 times', '3,000 times', '300 times'], hint: 'The wheels turn slower than the engine.', explanation: '3,000 ÷ 3 = 1,000.' },
+      medium: { stem: 'An engine runs at 4,500 rpm with a total ratio of 4.5 : 1. How many revolutions per minute do the wheels make?', answer: 1000, unit: 'rpm', hint: 'Divide by the ratio.', formula: 'wheel rpm = engine rpm ÷ ratio', explanation: '4,500 ÷ 4.5 = 1,000 rpm.' },
+      hard: { stem: 'A car with 1.8 m wheels does 90 km/h with the engine at 3,000 rpm. What is the total ratio?', answer: 3000 / (25 / 1.8 * 60), unit: ': 1', rel: 0.02, hint: 'Find the wheel rpm first.', formula: 'ratio = engine rpm ÷ wheel rpm', explanation: `90 km/h = 25 m/s. Wheel rpm = 25 ÷ 1.8 × 60 = 833.3. Ratio = 3,000 ÷ 833.3 = ${fmt(3000 / (25 / 1.8 * 60), 2)}.` } }),
+  ],
+  'auto.aero': [
+    () => ({
+      easy: { stem: 'A cyclist doubles their speed from 10 km/h to 20 km/h. The air drag on them becomes…', right: 'Four times bigger', wrong: ['Twice as big', 'The same', 'Eight times bigger'], hint: 'Speed squared.', explanation: 'Drag ∝ v², so doubling the speed gives four times the drag.' },
+      medium: { stem: 'The drag on a car is 200 N at 15 m/s. What is the drag at 30 m/s, in newtons?', answer: 800, unit: 'N', hint: '(30 ÷ 15)² = 4.', formula: 'F₂ = F₁ × (v₂ ÷ v₁)²', explanation: '200 × 4 = 800 N.' },
+      hard: { stem: 'A lorry has Cd = 0.6, frontal area 8 m² and air density 1.2 kg/m³. What is the drag at 25 m/s, in kilonewtons?', answer: 0.5 * 1.2 * 0.6 * 8 * 625 / 1000, unit: 'kN', rel: 0.02, hint: '½ ρ Cd A v², then ÷ 1,000.', formula: 'F = ½ ρ Cd A v²', explanation: '0.5 × 1.2 × 0.6 × 8 × 25² = 1,800 N = 1.8 kN.' } }),
+    () => ({
+      easy: { stem: 'Which shape has the least air drag?', right: 'A low, smooth, pointed shape', wrong: ['A tall, flat-fronted box', 'A wide open frame', 'A shape with a big flat roof rack'], hint: 'Think of a fish or a bullet train.', explanation: 'Smooth, pointed shapes let air slip past, so they have a lower drag coefficient.' },
+      medium: { stem: 'A cyclist feels a drag of 30 N at 6 m/s. How much power does it take to overcome it, in watts?', answer: 180, unit: 'W', hint: 'Power = force × speed.', formula: 'P = F × v', explanation: '30 × 6 = 180 W.' },
+      hard: { stem: 'A car needs 15 kW to beat the air at 100 km/h. How many kW does it need at 130 km/h?', answer: 15 * 1.3 ** 3, unit: 'kW', rel: 0.02, hint: 'Power goes with speed cubed.', formula: 'P₂ = P₁ × (v₂ ÷ v₁)³', explanation: `15 × 1.3³ = 15 × 2.197 = ${fmt(15 * 1.3 ** 3, 1)} kW.` } }),
+  ],
+  'auto.brakes': [
+    () => ({
+      easy: { stem: 'A bicycle and a heavy truck move at the same speed. Which has more energy of motion to turn into heat when it stops?', right: 'The truck, because it has more mass', wrong: ['The bicycle', 'They have the same', 'Neither has any'], hint: 'Energy grows with mass.', explanation: 'KE = ½ m v², so at the same speed the heavier vehicle carries more.' },
+      medium: { stem: 'A 1,500 kg car stops from 20 m/s. How much heat is made in the brakes, in kilojoules?', answer: 300, unit: 'kJ', hint: '½ × 1,500 × 20².', formula: 'KE = ½ m v²', explanation: '½ × 1,500 × 400 = 300,000 J = 300 kJ.' },
+      hard: { stem: 'A 1,500 kg car stops from 108 km/h. How much heat is made in the brakes, in kilojoules?', answer: 675, unit: 'kJ', rel: 0.01, hint: '108 km/h = 30 m/s.', formula: 'KE = ½ m v²', explanation: '108 ÷ 3.6 = 30 m/s. ½ × 1,500 × 900 = 675,000 J = 675 kJ.' } }),
+    () => ({
+      easy: { stem: 'On a long downhill the brakes get so hot that they work badly. Why does this happen?', right: 'The brakes keep turning motion into heat faster than they can cool', wrong: ['The tyres get heavier', 'The engine pushes back', 'Gravity switches off'], hint: 'Think about what braking produces.', explanation: 'Braking turns energy into heat. If it builds up faster than the air carries it away, the brakes overheat and fade.' },
+      medium: { stem: 'The same 1,500 kg car now stops from 10 m/s. How much heat is made, in kilojoules?', answer: 75, unit: 'kJ', hint: '½ × 1,500 × 10².', formula: 'KE = ½ m v²', explanation: '½ × 1,500 × 100 = 75,000 J = 75 kJ. Half the speed gives a quarter of the heat.' },
+      hard: { stem: 'A 5 kg brake disc (c = 500 J/kg°C) absorbs 200 kJ of heat. By how many °C does it warm?', answer: 200000 / (5 * 500), unit: '°C', rel: 0.02, hint: 'ΔT = Q ÷ (m c).', formula: 'ΔT = Q ÷ (m c)', explanation: '200,000 ÷ (5 × 500) = 80 °C.' } }),
+  ],
+  'geo.slope': [
+    () => ({
+      easy: { stem: 'Which road is steeper: one that rises 10 m over 100 m or one that rises 5 m over 100 m?', right: 'The one that rises 10 m', wrong: ['The one that rises 5 m', 'They are the same', 'You cannot tell'], hint: 'Same run, so compare the rise.', explanation: 'With the same run, the bigger rise is steeper: 10% against 5%.' },
+      medium: { stem: 'A track rises 45 m over a horizontal distance of 900 m. What is its gradient as a percentage?', answer: 5, unit: '%', hint: '45 ÷ 900 × 100.', formula: 'gradient % = rise ÷ run × 100', explanation: '45 ÷ 900 = 0.05, so 5%.' },
+      hard: { stem: 'A cyclist climbs a 7% road for 2.5 km. How many metres does the road rise?', answer: 175, unit: 'm', hint: '7% of 2,500 m.', formula: 'rise = gradient % × run ÷ 100', explanation: '7 × 2,500 ÷ 100 = 175 m.' } }),
+    () => ({
+      easy: { stem: 'A road has a gradient of 20%. For every 100 m forward it…', right: 'Rises 20 m', wrong: ['Rises 2 m', 'Rises 200 m', 'Rises 5 m'], hint: 'Percent means per hundred.', explanation: '20% means 20 m of rise for every 100 m of run.' },
+      medium: { stem: 'A ramp rises 1.2 m over a run of 10 m. What is its gradient as a percentage?', answer: 12, unit: '%', hint: '1.2 ÷ 10 × 100.', formula: 'gradient % = rise ÷ run × 100', explanation: '1.2 ÷ 10 = 0.12, so 12%.' },
+      hard: { stem: 'A mountain railway rises 800 m over 12 km of horizontal distance. What is its average gradient as a percentage?', answer: 800 / 12000 * 100, unit: '%', rel: 0.02, hint: 'Both distances in metres: 12 km = 12,000 m.', formula: 'gradient % = rise ÷ run × 100', explanation: `800 ÷ 12,000 × 100 = ${fmt(800 / 120, 2)}%.` } }),
+  ],
+  'geo.scale': [
+    () => ({
+      easy: { stem: 'On a 1 : 1,000 map, 1 cm stands for how far on the ground?', right: '10 m', wrong: ['1 m', '100 m', '1,000 m'], hint: '1,000 cm is how many metres?', explanation: '1 cm → 1,000 cm = 10 m.' },
+      medium: { stem: 'Two towns are 8 cm apart on a 1 : 50,000 map. What is the real distance in kilometres?', answer: 4, unit: 'km', hint: '8 × 50,000 = 400,000 cm.', formula: 'real cm = map cm × scale', explanation: '8 × 50,000 = 400,000 cm = 4 km.' },
+      hard: { stem: 'A 3 km beach is drawn on a 1 : 25,000 map. How many centimetres long is it on the map?', answer: 12, unit: 'cm', hint: '3 km = 300,000 cm. Divide by 25,000.', formula: 'map cm = real cm ÷ scale', explanation: '300,000 ÷ 25,000 = 12 cm.' } }),
+    () => ({
+      easy: { stem: 'Which map scale shows the most detail?', right: '1 : 5,000', wrong: ['1 : 50,000', '1 : 500,000', '1 : 5,000,000'], hint: 'Smaller scale number, less shrinking.', explanation: 'A smaller scale number shrinks the world less, so there is room for more detail.' },
+      medium: { stem: 'A path is 12 km long. How many centimetres long is it on a 1 : 100,000 map?', answer: 12, unit: 'cm', hint: '12 km = 1,200,000 cm.', formula: 'map cm = real cm ÷ scale', explanation: '1,200,000 ÷ 100,000 = 12 cm.' },
+      hard: { stem: 'A line of 5 cm on a map stands for 2.5 km on the ground. What is the scale number N in 1 : N?', answer: 50000, unit: '', hint: '2.5 km = 250,000 cm. Divide by 5.', formula: 'scale = real cm ÷ map cm', explanation: '250,000 ÷ 5 = 50,000, so the scale is 1 : 50,000.' } }),
+  ],
+  'geo.carbon': [
+    () => ({
+      easy: { stem: 'A full 50-litre tank of petrol is burned. About how much CO₂ does that release?', right: '115 kg', wrong: ['11.5 kg', '52 kg', '21.7 kg'], hint: 'Litres × 2.3.', explanation: '50 × 2.3 = 115 kg.' },
+      medium: { stem: 'A car uses 7.5 litres per 100 km. How much fuel does a 240 km trip need, in litres?', answer: 18, unit: 'litres', hint: '240 ÷ 100 × 7.5.', formula: 'litres = km ÷ 100 × L/100 km', explanation: '240 ÷ 100 × 7.5 = 18 litres.' },
+      hard: { stem: 'A 100 km trip is made by one car using 6.0 L/100 km and another using 8.5 L/100 km. How many more kg of CO₂ does the second release? (2.3 kg per litre)', answer: 2.5 * 2.3, unit: 'kg', rel: 0.02, hint: 'Fuel difference first.', explanation: 'The second burns 2.5 litres more. 2.5 × 2.3 = 5.75 kg.' } }),
+    () => ({
+      easy: { stem: 'Which habit lowers a car\'s fuel use the most on a long trip?', right: 'Smooth, steady driving at a moderate speed', wrong: ['Hard acceleration between bends', 'Driving as fast as possible', 'Carrying extra heavy luggage'], hint: 'Think about drag and wasted braking.', explanation: 'Steady, moderate speed cuts drag and avoids wasting energy as heat in the brakes.' },
+      medium: { stem: 'A car emits 120 g of CO₂ per km. How many kg does a 350 km trip release?', answer: 42, unit: 'kg', hint: '120 × 350 ÷ 1,000.', formula: 'kg = g/km × km ÷ 1,000', explanation: '120 × 350 = 42,000 g = 42 kg.' },
+      hard: { stem: 'A car uses 6.0 L/100 km. How many grams of CO₂ does it release per kilometre? (2.3 kg per litre)', answer: 138, unit: 'g/km', rel: 0.02, hint: 'Litres per km × 2,300 g.', formula: 'g/km = L/100 km × 23', explanation: '6.0 × 23 = 138 g/km.' } }),
+  ],
 };
 
 /** Number of fresh scenarios available per concept. */

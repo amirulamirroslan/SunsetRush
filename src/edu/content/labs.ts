@@ -56,6 +56,54 @@ export const LABS: Lab[] = [
         inputs: [inp({ id: 'mu', label: 'Road', unit: '', min: 0.4, max: 0.4, step: 1, value: 0.4, locked: true, options: [{ label: 'Wet road (μ 0.4)', value: 0.4 }] }), inp({ id: 'reaction', label: 'Reaction time', unit: 's', min: 0.5, max: 2.5, step: 0.1, value: 1.5 }), inp({ id: 'speed', label: 'Speed', unit: 'km/h', min: 10, max: 140, step: 1, value: 80 })] },
     },
   },
+  {
+    id: 'lab.gearbox', subject: 'auto', concept: 'auto.gearing', title: 'Gearbox Lab', formula: 'engine rpm = (speed ÷ 2 m) × 60 × ratio',
+    intro: 'Mei\'s dyno links a 2 m wheel to the engine through a gearbox. Set the road speed and the gear ratio and read the engine speed.',
+    outputs: [
+      { id: 'wheel', label: 'Wheel speed', unit: 'rpm', decimals: 0, compute: v => v.speed / 3.6 / 2 * 60 },
+      { id: 'engine', label: 'Engine speed', unit: 'rpm', decimals: 0, compute: v => v.speed / 3.6 / 2 * 60 * v.ratio },
+    ],
+    variants: {
+      easy: { showFormula: true, guide: 'The total ratio is fixed at 4.0 : 1. Find a road speed that spins the engine at 4,000 to 4,400 rpm.', goal: { output: 'engine', min: 4000, max: 4400, text: 'Engine speed of 4,000 to 4,400 rpm.' },
+        inputs: [inp({ id: 'ratio', label: 'Total ratio', unit: '', min: 4, max: 4, step: 1, value: 4, locked: true, options: [{ label: '4.0 : 1', value: 4 }] }), inp({ id: 'speed', label: 'Road speed', unit: 'km/h', min: 20, max: 260, step: 5, value: 60 })] },
+      medium: { showFormula: false, guide: 'In second gear the total ratio is 6.0 : 1. Find the road speed that gives 5,800 to 6,200 rpm.', goal: { output: 'engine', min: 5800, max: 6200, text: 'Engine speed of 5,800 to 6,200 rpm in second gear.' },
+        inputs: [inp({ id: 'ratio', label: 'Total ratio', unit: '', min: 6, max: 6, step: 1, value: 6, locked: true, options: [{ label: '6.0 : 1 (second gear)', value: 6 }] }), inp({ id: 'speed', label: 'Road speed', unit: 'km/h', min: 20, max: 260, step: 1, value: 60 })] },
+      hard: { showFormula: false, guide: 'The car cruises at 140 km/h. Choose the total ratio that keeps the engine between 3,300 and 3,700 rpm.', goal: { output: 'engine', min: 3300, max: 3700, text: 'Engine speed of 3,300 to 3,700 rpm at 140 km/h.' },
+        inputs: [inp({ id: 'speed', label: 'Road speed', unit: 'km/h', min: 140, max: 140, step: 1, value: 140, locked: true }), inp({ id: 'ratio', label: 'Total ratio', unit: ': 1', min: 1.5, max: 10, step: 0.1, value: 6 })] },
+    },
+  },
+  {
+    id: 'lab.slope', subject: 'geo', concept: 'geo.slope', title: 'Gradient Lab', formula: 'gradient % = rise ÷ run × 100',
+    intro: 'Nia\'s survey rig measures a slope. Set how far the road rises and how far it runs, and read the gradient and the angle.',
+    outputs: [
+      { id: 'grad', label: 'Gradient', unit: '%', decimals: 1, compute: v => v.rise / v.run * 100 },
+      { id: 'angle', label: 'Angle', unit: '°', decimals: 1, compute: v => Math.atan(v.rise / v.run) * 180 / Math.PI },
+    ],
+    variants: {
+      easy: { showFormula: true, guide: 'The run is fixed at 200 m. Choose a rise that gives a gradient of 4.5% to 5.5%.', goal: { output: 'grad', min: 4.5, max: 5.5, text: 'A gradient of 4.5% to 5.5%.' },
+        inputs: [inp({ id: 'run', label: 'Run', unit: 'm', min: 200, max: 200, step: 1, value: 200, locked: true }), inp({ id: 'rise', label: 'Rise', unit: 'm', min: 1, max: 40, step: 1, value: 4 })] },
+      medium: { showFormula: false, guide: 'Use any rise and run that give a gradient of 7.5% to 8.5%.', goal: { output: 'grad', min: 7.5, max: 8.5, text: 'A gradient of 7.5% to 8.5%.' },
+        inputs: [inp({ id: 'run', label: 'Run', unit: 'm', min: 100, max: 600, step: 50, value: 300 }), inp({ id: 'rise', label: 'Rise', unit: 'm', min: 1, max: 60, step: 1, value: 6 })] },
+      hard: { showFormula: false, guide: 'The road rises 30 m. Choose the run that gives an angle of 5.5° to 6.0°.', goal: { output: 'angle', min: 5.5, max: 6, text: 'An angle between 5.5° and 6.0°.' },
+        inputs: [inp({ id: 'rise', label: 'Rise', unit: 'm', min: 30, max: 30, step: 1, value: 30, locked: true }), inp({ id: 'run', label: 'Run', unit: 'm', min: 100, max: 800, step: 10, value: 500 })] },
+    },
+  },
+  {
+    id: 'lab.carbon', subject: 'geo', concept: 'geo.carbon', title: 'Carbon Lab', formula: 'CO₂ (kg) = distance ÷ 100 × L/100 km × 2.3',
+    intro: 'Nia\'s fuel meter counts the litres and the carbon of a journey. Set the distance and the fuel use and read the CO₂.',
+    outputs: [
+      { id: 'fuel', label: 'Fuel used', unit: 'L', decimals: 1, compute: v => v.dist / 100 * v.cons },
+      { id: 'co2', label: 'CO₂ released', unit: 'kg', decimals: 1, compute: v => v.dist / 100 * v.cons * 2.3 },
+    ],
+    variants: {
+      easy: { showFormula: true, guide: 'The car uses 6.0 L/100 km. Choose a distance that burns 8.4 to 9.6 litres.', goal: { output: 'fuel', min: 8.4, max: 9.6, text: 'Burn 8.4 to 9.6 litres.' },
+        inputs: [inp({ id: 'cons', label: 'Fuel use', unit: 'L/100 km', min: 6, max: 6, step: 1, value: 6, locked: true }), inp({ id: 'dist', label: 'Distance', unit: 'km', min: 20, max: 300, step: 10, value: 100 })] },
+      medium: { showFormula: false, guide: 'The trip is 200 km. Choose a fuel use that releases 26 to 31 kg of CO₂.', goal: { output: 'co2', min: 26, max: 31, text: 'Release 26 to 31 kg of CO₂ over 200 km.' },
+        inputs: [inp({ id: 'dist', label: 'Distance', unit: 'km', min: 200, max: 200, step: 1, value: 200, locked: true }), inp({ id: 'cons', label: 'Fuel use', unit: 'L/100 km', min: 3, max: 15, step: 0.5, value: 8 })] },
+      hard: { showFormula: false, guide: 'This efficient car uses 5.0 L/100 km. Choose a distance that releases 40 to 46 kg of CO₂.', goal: { output: 'co2', min: 40, max: 46, text: 'Release 40 to 46 kg of CO₂.' },
+        inputs: [inp({ id: 'cons', label: 'Fuel use', unit: 'L/100 km', min: 3, max: 6, step: 0.5, value: 5 }), inp({ id: 'dist', label: 'Distance', unit: 'km', min: 50, max: 600, step: 10, value: 100 })] },
+    },
+  },
 ];
 export const labById = (id: string): Lab | undefined => LABS.find(l => l.id === id);
 
@@ -107,6 +155,24 @@ export const CHALLENGES: Challenge[] = [
       easy: obj('Keep to 150 km/h then 120 km/h in two 200 m zones. No hazard hits.', [sec({ id: 'za', label: 'First zone (150 km/h)', from: 1400, to: 1600, limitKmh: 150, overAllowSec: 3, noHits: true }), sec({ id: 'zb', label: 'Second zone (120 km/h)', from: 1600, to: 1800, limitKmh: 120, overAllowSec: 3, noHits: true })]),
       medium: obj('Keep to 120 km/h then 90 km/h in two 200 m zones. No hazard hits.', [sec({ id: 'za', label: 'First zone (120 km/h)', from: 1400, to: 1600, limitKmh: 120, overAllowSec: 1.5, noHits: true }), sec({ id: 'zb', label: 'Second zone (90 km/h)', from: 1600, to: 1800, limitKmh: 90, overAllowSec: 1.5, noHits: true })]),
       hard: obj('Keep to 100 km/h then 70 km/h in two 200 m zones. No hazard hits.', [sec({ id: 'za', label: 'First zone (100 km/h)', from: 1400, to: 1600, limitKmh: 100, overAllowSec: 0.6, noHits: true }), sec({ id: 'zb', label: 'Second zone (70 km/h)', from: 1600, to: 1800, limitKmh: 70, overAllowSec: 0.6, noHits: true })]),
+    },
+  },
+  {
+    id: 'c.auto', subject: 'auto', character: 'mei', title: 'Pit-Wall Challenge', summary: 'A slow run and a fast run, then gearing, drag and braking in situations you have never seen.',
+    concepts: ['auto.gearing', 'auto.aero', 'auto.brakes'],
+    objective: {
+      easy: obj('Slow section: 70 to 110 km/h. Fast section: at least 100 km/h and 20% faster.', [sec({ id: 'slow', label: 'Slow section', from: 100, to: 400, minAvgKmh: 70, maxAvgKmh: 110 }), sec({ id: 'fast', label: 'Fast section', from: 560, to: 860, minAvgKmh: 100, fasterThanPrevPct: 20 })]),
+      medium: obj('Slow section: 70 to 110 km/h. Fast section: at least 120 km/h and 35% faster.', [sec({ id: 'slow', label: 'Slow section', from: 100, to: 400, minAvgKmh: 70, maxAvgKmh: 110 }), sec({ id: 'fast', label: 'Fast section', from: 560, to: 860, minAvgKmh: 120, fasterThanPrevPct: 35 })]),
+      hard: obj('Slow section: 80 to 100 km/h. Fast section: 140 to 175 km/h and 55% faster.', [sec({ id: 'slow', label: 'Slow section', from: 100, to: 400, minAvgKmh: 80, maxAvgKmh: 100 }), sec({ id: 'fast', label: 'Fast section', from: 560, to: 860, minAvgKmh: 140, maxAvgKmh: 175, fasterThanPrevPct: 55 })]),
+    },
+  },
+  {
+    id: 'c.geo', subject: 'geo', character: 'nia', title: 'Coastal Survey', summary: 'Climb the cliff, run an eco section, then slopes, maps and carbon in places you have never surveyed.',
+    concepts: ['geo.slope', 'geo.scale', 'geo.carbon'],
+    objective: {
+      easy: obj('Drive the eco section under 130 km/h, then climb the cliff at 70 km/h or more.', [sec({ id: 'eco', label: 'Eco section', from: 560, to: 960, minAvgKmh: 70, limitKmh: 130, overAllowSec: 3 }), sec({ id: 'climb', label: 'The cliff road', from: 1700, to: 1950, minAvgKmh: 70, offRoadMaxSec: 3 })]),
+      medium: obj('Drive the eco section under 110 km/h, then climb the cliff at 90 km/h or more.', [sec({ id: 'eco', label: 'Eco section', from: 560, to: 960, minAvgKmh: 70, limitKmh: 110, overAllowSec: 1.5 }), sec({ id: 'climb', label: 'The cliff road', from: 1700, to: 1950, minAvgKmh: 90, offRoadMaxSec: 3 })]),
+      hard: obj('Drive the eco section under 100 km/h, then climb the cliff at 100 km/h or more.', [sec({ id: 'eco', label: 'Eco section', from: 560, to: 960, minAvgKmh: 70, limitKmh: 100, overAllowSec: 0.8 }), sec({ id: 'climb', label: 'The cliff road', from: 1700, to: 1950, minAvgKmh: 100, offRoadMaxSec: 3 })]),
     },
   },
 ];

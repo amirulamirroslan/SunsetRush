@@ -1,7 +1,13 @@
 import { MASTERY_ORDER, type MasteryLevel } from './types';
 
-export interface ConceptState { level: MasteryLevel; /** scenario ids this concept has already been tested on */ seen: string[]; right: number; tried: number }
-export const newConcept = (): ConceptState => ({ level: 'unseen', seen: [], right: 0, tried: 0 });
+export interface ConceptState {
+  level: MasteryLevel; /** scenario ids this concept has already been tested on */ seen: string[]; right: number; tried: number;
+  /** spaced-review box: 0 = not scheduled yet, 1 to 5 = how many successful refreshes in a row (longer gaps in higher boxes) */
+  box: number;
+  /** when the next refresh is due (ms since epoch); 0 = not scheduled */
+  due: number;
+}
+export const newConcept = (): ConceptState => ({ level: 'unseen', seen: [], right: 0, tried: 0, box: 0, due: 0 });
 
 export type Evidence =
   | { kind: 'discover' } | { kind: 'understood' } | { kind: 'practised' } | { kind: 'applied' }
@@ -19,7 +25,7 @@ export interface MasteryChange { state: ConceptState; from: MasteryLevel; to: Ma
  * scenario this concept has never been tested on (so repeating a known question can never master anything).
  */
 export function applyEvidence(state: ConceptState, ev: Evidence): MasteryChange {
-  const s: ConceptState = { level: state.level, seen: [...state.seen], right: state.right, tried: state.tried };
+  const s: ConceptState = { level: state.level, seen: [...state.seen], right: state.right, tried: state.tried, box: state.box, due: state.due };
   const from = s.level;
   if (ev.kind === 'scenario') {
     if (!s.seen.includes(ev.scenarioId)) s.seen.push(ev.scenarioId);

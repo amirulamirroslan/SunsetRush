@@ -2,6 +2,7 @@ import type { QuestionOutcome } from './assessment';
 import { CHALLENGES, DISCOVERY_POINTS, MISSIONS, challengeById, conceptById, missionById, missionsOf, transferQuestion, transferScenarioId, TRANSFER_SCENARIOS } from './content';
 import { PROFILES } from './difficulty';
 import { applyEvidence, type Evidence } from './mastery';
+import { scheduleReady } from './review';
 import type { EduSave, JournalEntry, LearningReport, ReportConcept } from './state';
 import { MASTERY_LABEL, MASTERY_ORDER, type Challenge, type ConceptId, type DriveResult, type LearningDifficulty, type MasteryLevel, type Mission, type Question, type SubjectId } from './types';
 
@@ -81,7 +82,7 @@ function reviewOf(questions: Question[], outcomes: QuestionOutcome[]): LearningR
 
 // ------------------------------------------------------------------ mission completion (APPLY, REFLECT)
 export interface MissionDone { edu: EduSave; report: LearningReport }
-export function finishMission(e: EduSave, m: Mission, diff: LearningDifficulty, drive: DriveResult, questions: Question[], outcomes: QuestionOutcome[], takeaway: string): MissionDone {
+export function finishMission(e: EduSave, m: Mission, diff: LearningDifficulty, drive: DriveResult, questions: Question[], outcomes: QuestionOutcome[], takeaway: string, now: number = Date.now()): MissionDone {
   const o = clone(e), prog = o.missions[m.id], first = !prog.done[diff] && !(prog.done.easy || prog.done.medium || prog.done.hard);
   prog.attempts++;
   const stars = drive.passed ? starsFor(outcomes, diff) : 0;
@@ -89,6 +90,7 @@ export function finishMission(e: EduSave, m: Mission, diff: LearningDifficulty, 
   const from = o.concepts[m.concept].level;
   for (const out of outcomes) { o.stats.answered++; if (out.correct) o.stats.correct++; if (out.hintUsed) o.stats.hints++; bump(o, out.concept, { kind: 'scenario', scenarioId: out.scenarioId, correct: out.correct }); }
   if (passed) bump(o, m.concept, { kind: 'applied' });
+  scheduleReady(o, [m.concept], now);
   const to = o.concepts[m.concept].level;
   let coins = 0;
   if (passed) { coins = coinsFor(diff, stars, first); prog.done[diff] = true; prog.stars[diff] = Math.max(prog.stars[diff], stars); o.stats.coinsEarned += coins; journal(o, { kind: 'mission', ref: m.id, diff, title: m.title, text: `${PROFILES[diff].label}: ${stars} star${stars === 1 ? '' : 's'}. ${takeaway}`.slice(0, 400) }); }
@@ -123,7 +125,7 @@ export function challengeQuestions(e: EduSave, c: Challenge, diff: LearningDiffi
     return transferQuestion(concept, v, diff, drive);
   });
 }
-export function finishChallenge(e: EduSave, c: Challenge, diff: LearningDifficulty, drive: DriveResult, questions: Question[], outcomes: QuestionOutcome[]): MissionDone {
+export function finishChallenge(e: EduSave, c: Challenge, diff: LearningDifficulty, drive: DriveResult, questions: Question[], outcomes: QuestionOutcome[], now: number = Date.now()): MissionDone {
   const o = clone(e), rec = o.challenges[c.id]; rec.attempts++;
   const before = new Map<ConceptId, MasteryLevel>(c.concepts.map(x => [x, o.concepts[x].level]));
   for (const out of outcomes) {
@@ -132,6 +134,7 @@ export function finishChallenge(e: EduSave, c: Challenge, diff: LearningDifficul
     if (drive.passed && !out.hintUsed) bump(o, out.concept, { kind: 'transfer', scenarioId: out.scenarioId, correct: out.correct });
     else bump(o, out.concept, { kind: 'scenario', scenarioId: out.scenarioId, correct: out.correct });
   }
+  scheduleReady(o, c.concepts, now);
   const right = outcomes.filter(x => x.correct).length;
   const stars = drive.passed ? starsFor(outcomes, diff) : 0, passed = drive.passed && stars > 0;
   const first = !Object.values(rec.passed).some(Boolean);

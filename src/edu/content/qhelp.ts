@@ -18,7 +18,7 @@ export function factory(c: QCtx, kind: Kind) {
   let n = 0;
   const base = (): { id: string; scenarioId: string; concept: ConceptId } => ({ id: `${c.mission}.${D1[c.diff]}.${kind === 'apply' ? 'a' : 'p'}${++n}`, scenarioId: `${c.mission}.${kind}`, concept: c.concept });
   return {
-    choice: (o: { stem: string; right: string; wrong: string[]; explanation: string; hint?: string; formula?: string }): Question => choiceQuestion({ ...base(), ...o }),
+    choice: (o: { stem: string; right: string; wrong: string[]; explanation: string; hint?: string; formula?: string; why?: Record<string, string> }): Question => choiceQuestion({ ...base(), ...o }),
     num: (o: { stem: string; answer: number; unit?: string; explanation: string; hint?: string; formula?: string; rel?: number; floor?: number }): Question => numericQuestion({ ...base(), ...o }),
   };
 }

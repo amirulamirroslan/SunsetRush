@@ -6,6 +6,7 @@ import type { QuestionOutcome } from '../edu/assessment';
 import { CHALLENGES, characterById, conceptById, labById, missionById, missionsOf, challengeById } from '../edu/content';
 import { PROFILES, type DifficultyProfile } from '../edu/difficulty';
 import { challengeQuestions, finishChallenge, finishMission, recordDiscover, recordDriveFail, recordPracticeOutcome, recordPractised, recordUnderstood } from '../edu/engine';
+import { buildReview, finishReview, gapLabel, reviewStatus, type ReviewDone, type ReviewSet } from '../edu/review';
 import type { LearningReport } from '../edu/state';
 import { DIFFICULTY_LABEL, MASTERY_LABEL, type Challenge, type DriveObjective, type DriveResult, type LearningDifficulty, type Mission, type Question } from '../edu/types';
 
@@ -51,6 +52,58 @@ export class Lesson {
     this.ctx = { kind: 'challenge', challenge, diff: this.edu.difficulty }; this.reset();
     this.challengeIntro();
   }
+  // ------------------------------------------------------------------ refresh (spaced review)
+  private reviewSet: ReviewSet | null = null;
+  openReview(): void {
+    this.ctx = null; this.reset();
+    this.reviewSet = buildReview(this.edu, this.edu.difficulty, Date.now());
+    this.reviewIntro();
+  }
+  private reviewShell(title: string, body: HTMLElement[], foot: HTMLElement[]): void {
+    clear(this.panel);
+    this.panel.append(
+      el('div', { class: 'lesson-head' }, [
+        el('button', { class: 'iconbtn', 'aria-label': 'Back to the adventure', onclick: () => this.host.exit() }, [icon('chevL')]),
+        el('div', { class: 'lesson-title' }, [el('div', { class: 'label' }, [`Refresh · ${DIFFICULTY_LABEL[this.edu.difficulty]}`]), el('h2', { class: 'title' }, [title])]),
+        el('span', { class: 'edu-diff' }, [DIFFICULTY_LABEL[this.edu.difficulty]]),
+      ]),
+      el('div', { class: 'lesson-body' }, body),
+      el('div', { class: 'lesson-foot' }, foot),
+    );
+    (this.panel.querySelector('.lesson-foot .btn') as HTMLElement | null)?.focus();
+    this.panel.querySelector('.lesson-body')?.scrollTo?.({ top: 0 });
+  }
+  private reviewIntro(): void {
+    const set = this.reviewSet!, now = Date.now();
+    if (!set.concepts.length) { this.reviewShell('Nothing to refresh yet', [el('p', { class: 'hint' }, ['Finish a mission and its idea will come back here after a day, then after longer and longer gaps while you keep getting it right.'])], [el('button', { class: 'btn', onclick: () => this.host.exit() }, [icon('home'), 'Back'])]); return; }
+    const rows = set.concepts.map(id => { const s = this.edu.concepts[id], due = s.due <= now; return el('li', {}, [icon(due ? 'star' : 'check'), el('div', {}, [el('b', {}, [conceptById(id).name]), el('span', {}, [due ? 'Due now' : `Not due yet (${gapLabel(s.due - now)}). Practice only.`])])]); });
+    this.reviewShell('Quick refresh', [
+      el('p', { class: 'hint' }, ['A few short questions on ideas you already know. Right answers on ideas that are due earn coins and push their next refresh further away. Missed ones come back sooner.']),
+      el('ul', { class: 'rv-list' }, rows),
+    ], [this.next('Start the refresh', () => this.reviewAsk(0), 'good')]);
+  }
+  private reviewAsk(i: number): void {
+    const set = this.reviewSet!, q = set.questions[i];
+    this.reviewShell('Quick refresh', [el('div', { class: 'label' }, [conceptById(q.concept).name]), questionView(q, this.profile, o => {
+      this.outcomes.push(o);
+      if (i + 1 < set.questions.length) this.reviewAsk(i + 1); else this.reviewFinish();
+    }, i, set.questions.length)], []);
+  }
+  private reviewFinish(): void {
+    let done!: ReviewDone; const now = Date.now();
+    this.save.update(d => { const r = finishReview(d.edu, this.outcomes, now); d.edu = r.edu; d.coins += r.coins; done = r; });
+    if (done.coins > 0) this.host.sfx('unlock');
+    const set = this.reviewSet!, right = done.results.filter(x => x.correct).length;
+    const rows = done.results.map(x => el('li', { class: x.correct ? 'ok' : 'miss' }, [icon(x.correct ? 'check' : 'warn'), el('div', {}, [el('b', {}, [conceptById(x.concept).name]), el('span', {}, [x.correct ? (x.wasDue ? `Next refresh ${gapLabel(x.nextDue - now)}.` : 'Not due yet, so its schedule stays as it was.') : `Back to a short gap: next refresh ${gapLabel(x.nextDue - now)}.`])])]));
+    const missed = set.questions.filter((_q, k) => this.outcomes[k] && !this.outcomes[k].correct);
+    const more = reviewStatus(this.edu, now).due > 0;
+    this.reviewShell('Refresh done', [
+      el('div', { class: 'rep-top' }, [el('div', {}, [el('b', { class: 'rep-big' }, [`${right} of ${done.results.length} correct`]), el('div', { class: 'hint' }, [done.coins ? 'Good remembering. Your schedule is updated.' : 'Your schedule is updated.'])]), done.coins ? el('span', { class: 'chip' }, [icon('coin'), `+${done.coins}`]) : null].filter((x): x is HTMLElement => x !== null)),
+      el('ul', { class: 'rv-list' }, rows),
+      ...(missed.length ? [el('div', { class: 'label' }, ['Worth another look']), ...missed.map(q => el('div', { class: 'review' }, [el('b', {}, [q.stem]), el('p', {}, [q.explanation])]))] : []),
+    ], [el('button', { class: 'btn ghost small', onclick: () => this.host.exit() }, [icon('home'), 'Adventure']), more ? this.next('Another set', () => this.openReview(), 'good') : null].filter((x): x is HTMLElement => x !== null));
+  }
+
   private reset(): void { this.drive = null; this.questions = []; this.outcomes = []; this.takeaway = ''; }
 
   // ------------------------------------------------------------------ chrome

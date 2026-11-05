@@ -3,13 +3,15 @@ import { icon } from './icons';
 import type { SaveStore } from '../save/save';
 import { CHALLENGES, CHARACTERS, CONCEPTS, DISCOVERY_POINTS, REGIONS, SUBJECTS, conceptById, conceptsOf, missionsOf, subjectById } from '../edu/content';
 import { PROFILES } from '../edu/difficulty';
+import { dismissSuggestion, suggestDifficulty } from '../edu/adapt';
 import { challengeAvailability, missionAvailability, overallProgress, setDifficulty, subjectSummary } from '../edu/engine';
+import { gapLabel, reviewStatus } from '../edu/review';
 import { DIFFICULTY_LABEL, LEARNING_DIFFICULTIES, MASTERY_LABEL, MASTERY_ORDER, type LearningDifficulty } from '../edu/types';
 import type { LearningReport } from '../edu/state';
 import { formatTime } from '../sim/rewards';
 
 export interface AdventureActions {
-  mission(id: string): void; challenge(id: string): void; explore(): void; back(): void; report(r: LearningReport): void; sfx(k: 'click' | 'unlock'): void;
+  mission(id: string): void; challenge(id: string): void; review(): void; explore(): void; back(): void; report(r: LearningReport): void; sfx(k: 'click' | 'unlock'): void;
 }
 type Tab = 'missions' | 'journal' | 'profile';
 
@@ -85,7 +87,26 @@ export class Adventure {
     });
     const explore = el('button', { class: 'explore-card', onclick: () => { this.a.sfx('click'); this.a.explore(); } }, [icon('speed'), el('div', {}, [el('b', {}, ['Explore the coast']), el('span', {}, [`Drive freely and find field notes · ${found}/${DISCOVERY_POINTS.length} found`])])]);
     const later = el('div', { class: 'later' }, [el('span', { class: 'label' }, ['Coming later']), ...REGIONS.filter(r => !r.available).map(r => el('span', { class: 'pill' }, [r.name])), ...SUBJECTS.filter(s => !s.active).map(s => el('span', { class: 'pill' }, [s.name]))]);
-    return el('div', {}, [explore, el('div', { class: 'char-cols' }, cols), later]);
+    return el('div', {}, [this.suggestion(), this.refreshCard(), explore, el('div', { class: 'char-cols' }, cols), later]);
+  }
+
+  // ------------------------------------------------------------------ refresh and suggestion
+  private refreshCard(): HTMLElement | string {
+    const st = reviewStatus(this.save.data.edu, Date.now());
+    if (!st.scheduled) return '';
+    const due = st.due > 0, text = due ? `${st.due} idea${st.due === 1 ? ' is' : 's are'} ready for a quick refresh. Right answers earn coins.` : `All caught up. Next refresh ${gapLabel((st.nextDue ?? Date.now()) - Date.now())}. You can still practise any time.`;
+    return el('button', { class: `refresh-card${due ? '' : ' rest'}`, onclick: () => { this.a.sfx('click'); this.a.review(); } }, [icon('star'), el('div', {}, [el('b', {}, [due ? 'Refresh your ideas' : 'Practise anyway']), el('span', {}, [text])])]);
+  }
+  private suggestion(): HTMLElement | string {
+    const s = suggestDifficulty(this.save.data.edu); if (!s) return '';
+    const to = DIFFICULTY_LABEL[s.to];
+    return el('div', { class: 'suggest-card', role: 'status' }, [
+      icon('info'), el('p', {}, [s.reason]),
+      el('div', { class: 'acts' }, [
+        el('button', { class: 'btn small good', onclick: () => { this.save.update(d => { d.edu = dismissSuggestion(setDifficulty(d.edu, s.to)); }); this.a.sfx('click'); this.render(); } }, [`Switch to ${to}`]),
+        el('button', { class: 'btn ghost small', onclick: () => { this.save.update(d => { d.edu = dismissSuggestion(d.edu); }); this.render(); } }, ['Not now']),
+      ]),
+    ]);
   }
 
   // ------------------------------------------------------------------ journal
@@ -114,7 +135,7 @@ export class Adventure {
     });
     const stat = (label: string, v: string): HTMLElement => el('div', { class: 'stat' }, [el('span', { class: 'label' }, [label]), el('b', {}, [v])]);
     return el('div', { class: 'profile' }, [
-      el('div', { class: 'prof-stats' }, [stat('Missions', `${o.missions}/${o.missionsTotal}`), stat('Concepts mastered', `${o.mastered}/${o.conceptsTotal}`), stat('Answer accuracy', e.stats.answered ? `${o.accuracy}%` : '--'), stat('Hints used', String(e.stats.hints)), stat('Challenges passed', `${o.challenges}/${CHALLENGES.length}`), stat('Coins from learning', e.stats.coinsEarned.toLocaleString())]),
+      el('div', { class: 'prof-stats' }, [stat('Missions', `${o.missions}/${o.missionsTotal}`), stat('Concepts mastered', `${o.mastered}/${o.conceptsTotal}`), stat('Answer accuracy', e.stats.answered ? `${o.accuracy}%` : '--'), stat('Hints used', String(e.stats.hints)), stat('Challenges passed', `${o.challenges}/${CHALLENGES.length}`), stat('Refreshes done', String(e.stats.reviews)), stat('Coins from learning', e.stats.coinsEarned.toLocaleString())]),
       el('div', { class: 'label' }, ['Mastery by subject']), ...bars,
       el('div', { class: 'label' }, ['Racing record (separate from learning)']),
       el('div', { class: 'prof-stats' }, [stat('Races', String(d.stats.races)), stat('Wins', String(d.stats.wins)), stat('Best lap', d.best.lap ? formatTime(d.best.lap) : '--'), stat('Coins', d.coins.toLocaleString())]),

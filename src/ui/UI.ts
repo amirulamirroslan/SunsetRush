@@ -42,6 +42,7 @@ export class UI {
     this.adventure = new Adventure(save, {
       mission: id => { this.show('lesson'); this.lesson.openMission(id); a.startMission(id); },
       challenge: id => { this.show('lesson'); this.lesson.openChallenge(id); a.startChallenge(id); },
+      review: () => { this.show('lesson'); this.lesson.openReview(); a.startMission('review'); },
       explore: () => a.explore(), back: () => a.leaveAdventure(), sfx: k => a.sfx(k),
       report: r => { this.lesson.showReport(r, true); this.show('lesson'); },
     });

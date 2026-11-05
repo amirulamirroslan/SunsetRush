@@ -21,11 +21,11 @@ const answerRight = (q: Question): QuestionOutcome => ({ id: q.id, scenarioId: q
 const answerWrong = (q: Question): QuestionOutcome => ({ id: q.id, scenarioId: q.scenarioId, concept: q.concept, correct: false, attempts: 3, hintUsed: true, transfer: !!q.transfer });
 
 describe('curriculum content', () => {
-  it('has the milestone shape: 3 subjects / characters, 9 missions, 3 experiments, 3 challenges, 3 difficulties', () => {
-    expect(new Set(MISSIONS.map(m => m.subject)).size).toBe(3);
-    expect(new Set(MISSIONS.map(m => m.character)).size).toBe(3);
-    expect(MISSIONS.length).toBe(9); expect(LABS.length).toBe(3); expect(CHALLENGES.length).toBe(3);
-    for (const s of ['math', 'science', 'road'] as const) expect(missionsOf(s).length).toBe(3);
+  it('has the curriculum shape: 5 subjects / characters, 15 missions, 6 experiments, 5 challenges, 3 difficulties', () => {
+    expect(new Set(MISSIONS.map(m => m.subject)).size).toBe(5);
+    expect(new Set(MISSIONS.map(m => m.character)).size).toBe(5);
+    expect(MISSIONS.length).toBe(15); expect(LABS.length).toBe(6); expect(CHALLENGES.length).toBe(5);
+    for (const s of ['math', 'science', 'road', 'auto', 'geo'] as const) expect(missionsOf(s).length).toBe(3);
     for (const m of MISSIONS) for (const d of LEARNING_DIFFICULTIES) expect(m.variants[d]).toBeDefined();
     expect(new Set(CONCEPTS.map(c => c.id)).size).toBe(CONCEPTS.length);
     for (const m of MISSIONS) expect(CONCEPTS.some(c => c.id === m.concept)).toBe(true);
@@ -85,7 +85,7 @@ describe('curriculum content', () => {
 });
 
 describe('driving objectives and telemetry', () => {
-  it('each of the 36 objectives is achievable on the real physics by a careful scripted driver', () => {
+  it('each of the 60 objectives is achievable on the real physics by a careful scripted driver', () => {
     const fails: string[] = [];
     for (const m of MISSIONS) for (const d of LEARNING_DIFFICULTIES) { const r = driven(m.variants[d].objective); if (!r.passed) fails.push(`${m.id}/${d}: ${r.failReason}`); }
     for (const c of CHALLENGES) for (const d of LEARNING_DIFFICULTIES) { const r = driven(c.objective[d]); if (!r.passed) fails.push(`${c.id}/${d}: ${r.failReason}`); }
@@ -301,7 +301,7 @@ describe('save, reload and migration', () => {
     }
     expect(sanitizeEdu({ discoveries: ['d.speed', 'bogus', 3] }).discoveries).toEqual(['d.speed']);
     const d = sanitizeSave({ coins: 5, edu: { concepts: { 'math.speed': { level: 'mastered', seen: ['a', 4], right: 3, tried: 4 }, 'math.pace': { level: 'wizard' } } } });
-    expect(d.edu.concepts['math.speed']).toEqual({ level: 'mastered', seen: ['a'], right: 3, tried: 4 }); expect(d.edu.concepts['math.pace'].level).toBe('unseen');
+    expect(d.edu.concepts['math.speed']).toEqual({ box: 0, due: 0, level: 'mastered', seen: ['a'], right: 3, tried: 4 }); expect(d.edu.concepts['math.pace'].level).toBe('unseen');
   });
   it('profile numbers add up', () => {
     let e = defaultEdu(); const mi = MISSIONS[0], drive = driven(mi.variants.easy.objective), qs = mi.variants.easy.apply(drive);

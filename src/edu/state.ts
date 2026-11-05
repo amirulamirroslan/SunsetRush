@@ -3,7 +3,7 @@ import { newConcept, type ConceptState } from './mastery';
 import { LEARNING_DIFFICULTIES, MASTERY_ORDER, type ConceptId, type LearningDifficulty, type MasteryLevel } from './types';
 
 /** Version of the education block inside the save. Bump when its shape changes and add a step to `migrateEdu`. */
-export const EDU_VERSION = 1;
+export const EDU_VERSION = 2;
 
 export type PerDiff<T> = Record<LearningDifficulty, T>;
 export interface MissionProgress { done: PerDiff<boolean>; stars: PerDiff<number>; attempts: number; driveFails: number }
@@ -27,7 +27,9 @@ export interface EduSave {
   discoveries: string[];
   journal: JournalEntry[];
   reports: LearningReport[];
-  stats: { answered: number; correct: number; hints: number; coinsEarned: number; counter: number };
+  stats: { answered: number; correct: number; hints: number; coinsEarned: number; counter: number; reviews: number };
+  /** report counter value when the player last dismissed (or took) a difficulty suggestion; only newer reports count toward the next one */
+  suggestSkip: number;
 }
 
 const pd = <T>(v: T): PerDiff<T> => ({ easy: v, medium: v, hard: v });
@@ -41,7 +43,7 @@ export function defaultEdu(): EduSave {
   for (const l of LABS) labs[l.id] = pd(false);
   const challenges: EduSave['challenges'] = {};
   for (const c of CHALLENGES) challenges[c.id] = { passed: pd(false), attempts: 0 };
-  return { version: EDU_VERSION, difficulty: 'easy', onboarded: false, concepts, missions, labs, challenges, discoveries: [], journal: [], reports: [], stats: { answered: 0, correct: 0, hints: 0, coinsEarned: 0, counter: 0 } };
+  return { version: EDU_VERSION, difficulty: 'easy', onboarded: false, concepts, missions, labs, challenges, discoveries: [], journal: [], reports: [], stats: { answered: 0, correct: 0, hints: 0, coinsEarned: 0, counter: 0, reviews: 0 }, suggestSkip: 0 };
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -52,13 +54,15 @@ const isDiff = (v: unknown): v is LearningDifficulty => LEARNING_DIFFICULTIES.in
 const isLevel = (v: unknown): v is MasteryLevel => MASTERY_ORDER.includes(v as MasteryLevel);
 const perDiff = <T>(raw: unknown, f: (v: unknown) => T, fb: T): PerDiff<T> => { const o = isObj(raw) ? raw : {}; return { easy: f(o.easy) ?? fb, medium: f(o.medium) ?? fb, hard: f(o.hard) ?? fb }; };
 
-/** Brings an older education block up to the current shape. Today there is only v1 (the first release), so it is a no-op that exists so future bumps have a home. */
+/** Brings an older education block up to the current shape. v1 -> v2 adds the spaced-review schedule on each concept, `stats.reviews` and `suggestSkip`; the sanitiser fills those from defaults, so progress is kept as is. */
 export function migrateEdu(raw: unknown): unknown {
   if (!isObj(raw)) return raw;
   let v = typeof raw.version === 'number' ? raw.version : 0;
   const out: Record<string, unknown> = { ...raw };
   // v0 -> v1: the block did not exist; sanitising from defaults is the whole migration.
   if (v < 1) v = 1;
+  // v1 -> v2: new optional fields only; sanitizeEdu supplies their defaults.
+  if (v < 2) v = 2;
   out.version = v;
   return out;
 }
@@ -73,7 +77,7 @@ export function sanitizeEdu(rawIn: unknown): EduSave {
   const cs = isObj(raw.concepts) ? raw.concepts : {};
   for (const c of CONCEPTS) {
     const r = cs[c.id]; if (!isObj(r)) continue;
-    out.concepts[c.id] = { level: isLevel(r.level) ? r.level : 'unseen', seen: Array.isArray(r.seen) ? r.seen.filter((x): x is string => typeof x === 'string').map(x => x.slice(0, 40)).slice(-60) : [], right: int(r.right, 0, 1e6, 0), tried: int(r.tried, 0, 1e6, 0) };
+    out.concepts[c.id] = { level: isLevel(r.level) ? r.level : 'unseen', seen: Array.isArray(r.seen) ? r.seen.filter((x): x is string => typeof x === 'string').map(x => x.slice(0, 40)).slice(-60) : [], right: int(r.right, 0, 1e6, 0), tried: int(r.tried, 0, 1e6, 0), box: int(r.box, 0, 5, 0), due: int(r.due, 0, 1e14, 0) };
   }
   const ms = isObj(raw.missions) ? raw.missions : {};
   for (const m of MISSIONS) {
@@ -89,7 +93,8 @@ export function sanitizeEdu(rawIn: unknown): EduSave {
   const kinds = ['discovery', 'mission', 'lab', 'challenge', 'reflection'];
   out.journal = Array.isArray(raw.journal) ? raw.journal.filter(isObj).filter(j => kinds.includes(j.kind as string) && isDiff(j.diff)).slice(-120).map(j => ({ n: int(j.n, 0, 1e9, 0), kind: j.kind as JournalEntry['kind'], ref: str(j.ref, 40), diff: j.diff as LearningDifficulty, title: str(j.title, 80), text: str(j.text, 400) })) : [];
   out.reports = Array.isArray(raw.reports) ? raw.reports.filter(isObj).slice(-15).map(sanitizeReport).filter((r): r is LearningReport => r !== null) : [];
-  if (isObj(raw.stats)) out.stats = { answered: int(raw.stats.answered, 0, 1e7, 0), correct: int(raw.stats.correct, 0, 1e7, 0), hints: int(raw.stats.hints, 0, 1e7, 0), coinsEarned: int(raw.stats.coinsEarned, 0, 1e9, 0), counter: int(raw.stats.counter, 0, 1e9, 0) };
+  if (isObj(raw.stats)) out.stats = { answered: int(raw.stats.answered, 0, 1e7, 0), correct: int(raw.stats.correct, 0, 1e7, 0), hints: int(raw.stats.hints, 0, 1e7, 0), coinsEarned: int(raw.stats.coinsEarned, 0, 1e9, 0), counter: int(raw.stats.counter, 0, 1e9, 0), reviews: int(raw.stats.reviews, 0, 1e7, 0) };
+  out.suggestSkip = int(raw.suggestSkip, 0, 1e9, 0);
   out.stats.correct = Math.min(out.stats.correct, out.stats.answered);
   return out;
 }

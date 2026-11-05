@@ -1,4 +1,32 @@
-# EDUCATIONAL RACING ADVENTURE: milestone 1, Discovery Coast (current)
+# Session 7: learning effectiveness + curriculum depth (current, owner request "2 and 3")
+
+## What changed
+**More effective learning (`src/edu`, pure TS, all tested)**
+- `diagnose.ts`: wrong numeric answers get a one-line tip naming the likely slip (km/h vs m/s, missing square, missing ½, upside-down fraction, kilo, percent vs fraction). Narrow 4% window on purpose so a random guess is not blamed for a classic mistake. Choice questions can carry `whyOption` (per tempting wrong option, via `why:` in `choiceQuestion`); written for the new missions and some old ones. The question view also shows "You answered X, the answer is Y" after a miss.
+- Spaced review ("Refresh"): `review.ts` + `content/review.ts`. Concepts that reach *applied* are scheduled (box 1..5, gaps 1/3/7/14/30 days). A refresh set is 4 short questions, due concepts first. Correct on a due concept: next box + 10 coins (5 with a hint); miss: back to box 1 (1 day); practising early pays nothing and cannot push a concept out. Mastery never goes down. Questions come from per-concept generators keyed by an integer, so numbers change every refresh but nothing is random. They use `rv.*` scenario ids and never touch the mastery-challenge scenarios.
+- Adaptive suggestion: `adapt.ts`. Last 3 reports at the current difficulty: all strong (passed, >=2 stars, >=85%) suggests up; 2 of 3 weak suggests down. Hub banner; "Not now" or switching sets `suggestSkip` so it needs 3 newer reports to return. Never changes difficulty by itself.
+- Save: `EDU_VERSION` 2 (concept `box`/`due`, `stats.reviews`, `suggestSkip`). v1 blocks upgrade losslessly (tested, and checked in the browser with a hand-made v1 save).
+
+**Content depth**
+- Two new subjects, now active: **Automotive Engineering** (Mei Tanaka: m10 Gears and Revs, m11 Fighting the Air, m12 Brakes and Heat) and **Geography and Environment** (Prof. Nia Okafor: m13 Reading the Hills, m14 Reading the Map, m15 The Eco Run). Each is 3 learning difficulties with understand cards, a drive objective, and apply questions built from the player's own telemetry. New: labs `lab.gearbox`, `lab.slope`, `lab.carbon`; challenges `c.auto`, `c.geo`; 6 field notes (15 in total, at 330/760/1130/1780/2150/2300 m); 2 fresh transfer scenarios per new concept per difficulty; refresh generators for all 15 concepts.
+- Totals now: 5 subjects, 15 concepts, 15 missions (45 variants), 6 labs, 5 challenges, 15 field notes, 60 objectives (all driven on the real physics by `testPilot` in `edu.test.ts`).
+- Fuel/CO2 has no fuel simulation behind it: m15 uses the small speed-to-consumption table in `missionsGeo.ts` (`ECO_TABLE`) and 2.3 kg CO2 per litre; telemetry supplies the average speed. Gearing questions assume 2 m wheels throughout; braking questions assume a 1,200 kg car.
+- Lab inputs with `options` are shown as a single fixed value (the lab view does not offer a selector), so labs use sliders for anything the player must choose.
+
+## Verified
+- `tsc` clean; `vite build` OK. `vitest`: 122 pass, 2 fail, both the **same two failures that pre-date this work** (`racing.test.ts` convoy spread, `vegetation.test.ts` draw calls). 18 new tests in `src/edu/learning.test.ts` (diagnosis, refresh bank for every concept/difficulty/seed, schedule rules, suggestion rules, v1 to v2 migration) plus updated counts in `edu.test.ts`.
+- Headless Chromium (software GL): old v1 save loads and keeps progress; hub shows five subject columns; suggestion banner appears and switching works; Refresh card appears when ideas are due; a full Refresh run (intro, wrong answer with tip, summary, coins, schedule moved) completes; Mei's first mission opens through the hub and shows the understand cards and the gearbox lab. No console errors. Not driven: the actual drives.
+
+## NOT verified
+- No human has played the new missions. Objective tolerances come from the scripted pilot, not touch driving. The new questions have not been read by a teacher: please check the physics/maths wording (especially the simplified brake-heat and drag models and the fuel table).
+- Mission drive, challenge flow and Explore for the new subjects were not run in the browser (unit/pilot tests only). The 5-column hub wraps to 4 + 1 at 1280 px; check on a phone.
+
+## Next
+1. Playtest m10 to m15 and c.auto / c.geo at all three difficulties. 2. Wrong-answer replay of the player's own telemetry. 3. Localisation of the strings. 4. Regions beyond Discovery Coast.
+
+---
+
+# EDUCATIONAL RACING ADVENTURE: milestone 1, Discovery Coast (history; see Session 7 above for the current state)
 
 **Design authority:** the "PROJECT HANDOVER — EDUCATIONAL RACING ADVENTURE" brief. No Git/GitHub; ZIP checkpoints only. Older sections below are history (the art-direction work is untouched and still applies).
 

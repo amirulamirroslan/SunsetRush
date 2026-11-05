@@ -13,14 +13,16 @@ export type SubjectId = 'math' | 'science' | 'road' | 'auto' | 'geo';
 export type ConceptId =
   | 'math.speed' | 'math.pace' | 'math.percent'
   | 'sci.friction' | 'sci.energy' | 'sci.potential'
-  | 'road.stopping' | 'road.limits' | 'road.hazards';
+  | 'road.stopping' | 'road.limits' | 'road.hazards'
+  | 'auto.gearing' | 'auto.aero' | 'auto.brakes'
+  | 'geo.slope' | 'geo.scale' | 'geo.carbon';
 
 /** Mastery ladder. A concept only reaches `mastered` after a correct answer in a scenario it has never seen before. */
 export type MasteryLevel = 'unseen' | 'discovered' | 'learning' | 'practised' | 'applied' | 'mastered';
 export const MASTERY_ORDER: readonly MasteryLevel[] = ['unseen', 'discovered', 'learning', 'practised', 'applied', 'mastered'];
 export const MASTERY_LABEL: Record<MasteryLevel, string> = { unseen: 'Not found yet', discovered: 'Discovered', learning: 'Learning', practised: 'Practised', applied: 'Applied', mastered: 'Mastered' };
 
-export type CharacterId = 'kai' | 'lina' | 'omar';
+export type CharacterId = 'kai' | 'lina' | 'omar' | 'mei' | 'nia';
 export interface Character { id: CharacterId; name: string; role: string; subject: SubjectId; color: string; initials: string; bio: string }
 export interface DialogueLine { who: CharacterId | 'you'; text: string }
 
@@ -42,10 +44,13 @@ export interface Question {
   /** numeric answer, absolute tolerance and unit label */
   answer?: number; tolerance?: number; unit?: string;
   hint?: string; formula?: string; explanation: string;
+  /** choice questions: for each option, why it is a tempting wrong answer (null for the right one). Same order as `options`. */
+  whyOption?: (string | null)[];
   transfer?: boolean;
 }
 export type Answer = { choice: number } | { value: number };
-export interface Grade { correct: boolean; message: string }
+/** `tip` is a targeted note about the likely mistake (a unit slip, a missing square, a tempting wrong option). */
+export interface Grade { correct: boolean; message: string; tip?: string }
 
 // ------------------------------------------------------------------ driving objectives (evaluated from telemetry)
 export interface SectionLeg {

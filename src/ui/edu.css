@@ -53,6 +53,8 @@
 .q-feedback { padding: 8px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.07); }
 .edu-q.right .q-feedback { background: rgba(124, 240, 90, 0.14); border: 1px solid rgba(124, 240, 90, 0.5); }
 .edu-q.wrong .q-feedback { background: rgba(255, 194, 58, 0.12); border: 1px solid rgba(255, 194, 58, 0.5); }
+.q-tip { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; color: #ffe39a; } .q-tip .ico { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.q-compare { margin-top: 6px; color: var(--muted); font-size: 15px; }
 .data-note { display: flex; gap: 8px; align-items: center; color: #bdf0ff; font-size: 15px; }
 
 /* experiment lab */
@@ -101,7 +103,7 @@
 .diff-card b { font-family: var(--display); font-size: 28px; font-style: italic; text-transform: uppercase; } .diff-card span { color: var(--muted); font-size: 15.5px; line-height: 1.4; }
 .explore-card { display: flex; gap: 12px; align-items: center; text-align: left; padding: 12px 16px; border-radius: 12px; background: linear-gradient(100deg, rgba(25, 185, 104, 0.3), rgba(53, 208, 255, 0.2)); border: 1px solid rgba(124, 240, 90, 0.5); width: 100%; }
 .explore-card .ico { width: 34px; height: 34px; } .explore-card b { display: block; font-family: var(--display); font-size: 24px; font-style: italic; text-transform: uppercase; } .explore-card span { color: #d6ffd0; font-size: 15px; }
-.char-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.char-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
 .char-col { display: grid; gap: 8px; align-content: start; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); }
 .char-col header { display: flex; gap: 10px; align-items: center; } .char-col header b { display: block; font-family: var(--display); font-size: 21px; } .char-col header span { color: var(--muted); font-size: 14px; }
 .char-col .hint { margin: 0; font-size: 14px; }
@@ -143,3 +145,16 @@
   .explore-card { padding: 6px 12px; } .explore-card .ico { width: 24px; height: 24px; } .explore-card b { font-size: 18px; } .explore-card span { font-size: 13px; }
   .hub-head .btn, .hub-head .iconbtn { --h: 40px; }
 }
+
+/* refresh (spaced review) and the difficulty suggestion */
+.refresh-card, .suggest-card { display: flex; gap: 12px; align-items: center; text-align: left; padding: 12px 16px; border-radius: 12px; width: 100%; margin-bottom: 10px; }
+.refresh-card { background: linear-gradient(100deg, rgba(255, 194, 58, 0.26), rgba(255, 90, 60, 0.16)); border: 1px solid rgba(255, 194, 58, 0.55); }
+.refresh-card.rest { background: rgba(255, 255, 255, 0.05); border-color: var(--line); }
+.refresh-card .ico { width: 30px; height: 30px; flex: none; } .refresh-card b { display: block; font-family: var(--display); font-size: 22px; font-style: italic; text-transform: uppercase; } .refresh-card span { color: #ffe9b8; font-size: 15px; }
+.refresh-card.rest span { color: var(--muted); }
+.suggest-card { background: rgba(53, 208, 255, 0.1); border: 1px solid rgba(53, 208, 255, 0.4); flex-wrap: wrap; }
+.suggest-card p { margin: 0; flex: 1 1 260px; font-size: 16px; line-height: 1.4; } .suggest-card .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.rv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rv-list li { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--line); }
+.rv-list li.ok { border-color: rgba(124, 240, 90, 0.5); } .rv-list li.miss { border-color: rgba(255, 194, 58, 0.5); }
+.rv-list .ico { width: 22px; height: 22px; flex: none; } .rv-list b { display: block; } .rv-list span { color: var(--muted); font-size: 15px; }

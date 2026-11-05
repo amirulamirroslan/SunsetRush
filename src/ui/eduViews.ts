@@ -9,8 +9,11 @@ import type { Lab, LearningDifficulty, Question } from '../edu/types';
  * One question at a time. The player gets the tries of their learning difficulty, an optional hint, and a plain explanation after the
  * final answer. Calls `done` once with how it went; that outcome is the evidence the mastery system uses.
  */
+/** A number as the player would write it: at most 2 decimals, no trailing zeros. */
+const shown = (n: number): string => String(Math.round(n * 100) / 100);
+
 export function questionView(q: Question, p: DifficultyProfile, done: (o: QuestionOutcome) => void, index = 0, total = 1): HTMLElement {
-  let attempts = 0, hintUsed = false, finished = false;
+  let attempts = 0, hintUsed = false, finished = false, lastTip = '', lastValue: number | null = null;
   const feedback = el('div', { class: 'q-feedback', role: 'status', 'aria-live': 'polite' });
   const hint = el('div', { class: 'q-hint' });
   const body = el('div', { class: 'q-body' });
@@ -19,14 +22,17 @@ export function questionView(q: Question, p: DifficultyProfile, done: (o: Questi
     if (q.kind === 'choice') Array.from(body.children).forEach((c, i) => { const b = c as HTMLButtonElement; b.disabled = true; if (i === q.correct) b.classList.add('ok'); });
     root.classList.add(correct ? 'right' : 'wrong');
     feedback.replaceChildren(el('b', {}, [correct ? 'Correct.' : 'Not this time.']), ' ', q.explanation);
+    if (!correct && q.kind === 'numeric' && lastValue !== null && q.answer !== undefined) feedback.append(el('div', { class: 'q-compare' }, [`You answered ${shown(lastValue)}${q.unit ? ' ' + q.unit : ''}. The answer is ${shown(q.answer)}${q.unit ? ' ' + q.unit : ''}.`]));
+    if (!correct && lastTip) feedback.append(el('div', { class: 'q-tip' }, [icon('info'), el('span', {}, [lastTip])]));
     if (q.formula) feedback.append(el('div', { class: 'q-formula' }, [q.formula]));
     actions.append(el('button', { class: 'btn small good', onclick: () => done({ id: q.id, scenarioId: q.scenarioId, concept: q.concept, correct, attempts: Math.max(1, attempts), hintUsed, transfer: !!q.transfer }) }, [icon('chevR'), index + 1 >= total ? 'Continue' : 'Next question']));
     (actions.querySelector('button') as HTMLElement | null)?.focus();
   };
-  const miss = (msg: string): void => {
-    attempts++;
+  const miss = (msg: string, tip?: string): void => {
+    attempts++; lastTip = tip ?? '';
     if (attempts >= p.attempts) return finish(false);
     feedback.replaceChildren(`${msg} ${p.attempts - attempts} ${p.attempts - attempts === 1 ? 'try' : 'tries'} left.`);
+    if (tip) feedback.append(el('div', { class: 'q-tip' }, [icon('info'), el('span', {}, [tip])]));
   };
   const showHint = (): void => {
     if (hintUsed || finished) return; hintUsed = true;
@@ -44,7 +50,7 @@ export function questionView(q: Question, p: DifficultyProfile, done: (o: Questi
         if (finished || b.disabled) return;
         const g = gradeAnswer(q, { choice: i });
         if (g.correct) { b.classList.add('ok'); attempts++; finish(true); }
-        else { b.classList.add('no'); b.disabled = true; miss(g.message); if (!finished) b.setAttribute('aria-disabled', 'true'); else b.classList.add('no'); }
+        else { b.classList.add('no'); b.disabled = true; miss(g.message, g.tip); if (!finished) b.setAttribute('aria-disabled', 'true'); else b.classList.add('no'); }
       } }, [el('span', { class: 'q-key' }, [String.fromCharCode(65 + i)]), text]);
       body.append(b);
     });
@@ -56,7 +62,8 @@ export function questionView(q: Question, p: DifficultyProfile, done: (o: Questi
       const v = Number(input.value.replace(/,/g, '').trim());
       if (input.value.trim() === '' || !Number.isFinite(v)) { feedback.replaceChildren('Type a number first.'); return; }
       const g = gradeAnswer(q, { value: v });
-      if (g.correct) { attempts++; finish(true); } else miss(g.message);
+      lastValue = v;
+      if (g.correct) { attempts++; finish(true); } else miss(g.message, g.tip);
       if (!finished) { input.select(); }
     };
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); check(); } e.stopPropagation(); });
