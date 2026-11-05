@@ -10,6 +10,12 @@ import { Effects } from '../render/effects';
 import { SkidTrail } from '../render/skidTrail';
 import { Landmarks } from '../render/landmarks';
 import { Obstacles, Scenery } from '../render/scenery';
+import { EduMarkers } from '../render/eduMarkers';
+import { DISCOVERY_POINTS, conceptById } from '../edu/content';
+import { collectDiscovery } from '../edu/engine';
+import { ObjectiveTracker } from '../edu/objectives';
+import { observeRacing } from '../edu/telemetry';
+import type { DriveObjective, DriveResult } from '../edu/types';
 import { PerfGovernor, TIERS, initialTier, type Tier } from '../render/quality';
 import { Track } from '../sim/Track';
 import { COURSE } from '../sim/trackDef';
@@ -25,7 +31,11 @@ import { UI } from '../ui/UI';
 import { SpeedLines } from '../ui/speedlines';
 import type { MapDot } from '../ui/hud';
 
-type Mode = 'menu' | 'garage' | 'race' | 'results';
+type Mode = 'menu' | 'garage' | 'race' | 'results' | 'adventure' | 'lesson';
+/** A learning run on the racing engine: a scored drive for a mission, or free exploration. Both use one car and no rivals. */
+type EduRun =
+  | { kind: 'drive'; tracker: ObjectiveTracker; unsub: () => void; objective: DriveObjective; title: string; coach: string; ended: boolean; endAt: number }
+  | { kind: 'explore'; found: number };
 const RACE_CARS = 6;
 const PLAYER_SLOT = 4;
 const tmp = { x: 0, y: 0, z: 0, heading: 0, tx: 0, tz: 0 };
@@ -43,6 +53,9 @@ export class Game {
   private views: CarView[] = [];
   private assets = new CarAssets(import.meta.env.BASE_URL);
   private obstacles: Obstacles | null = null;
+  private markers!: EduMarkers;
+  private edu: EduRun | null = null;
+  private noteTimer = 0;
   private sim: RaceSim | null = null;
   private ui!: UI; private speedLines!: SpeedLines; private controls!: Controls;
   private governor!: PerfGovernor;
@@ -99,17 +112,20 @@ export class Game {
       this.smokeT.push(0); this.skidTrails.push(new SkidTrail(), new SkidTrail());
     }
     this.effects = new Effects(this.world.scene, TIERS[this.tier].particles, TIERS[this.tier].skidMarks);
+    this.markers = new EduMarkers(this.track); this.world.scene.add(this.markers.group);
     // optional: Poly Haven HDRI matching the lighting preset as the car-only reflection environment (`?hdri`)
     if (q.has('hdri')) void import('../render/hdri').then(m => m.loadCarEnvironment(this.gfx.renderer, Math.atan2(atmosphere.sunDir.z, atmosphere.sunDir.x), atmosphere.hdri))
       .then(env => { for (const v of this.views) v.setEnvMap(env.texture, env.rotationY); }).catch(e => console.warn('HDRI unavailable, using the procedural sky', e));
     this.rig.reducedMotion = this.reduced;
     await step(0.85, 'Painting the cars');
-    this.controls = new Controls({ onPause: () => this.togglePause(), onRespawn: () => this.respawnPlayer(), onRestart: () => { if (this.mode === 'race') this.startRace(); } });
+    this.controls = new Controls({ onPause: () => this.togglePause(), onRespawn: () => this.respawnPlayer(), onRestart: () => { if (this.mode === 'race') this.restartCurrent(); } });
     this.ui = new UI(this.host, this.save, this.track, this.controls.touch, {
-      race: () => this.startRace(), garage: () => this.openGarage(), settings: () => this.ui.openSettings(), help: () => this.ui.openHelp(), toggleSound: () => { this.save.update(d => { d.settings.sound = !d.settings.sound; }); this.applySettings(); this.ui.menu.refresh(); },
+      adventure: () => this.openAdventure(), race: () => this.startRace(), garage: () => this.openGarage(), settings: () => this.ui.openSettings(), help: () => this.ui.openHelp(), toggleSound: () => { this.save.update(d => { d.settings.sound = !d.settings.sound; }); this.applySettings(); this.ui.menu.refresh(); },
       preview: (v, l) => this.previewCar(v, l), done: () => this.showMenu(), sfx: k => (k === 'click' ? this.audio.click() : this.audio.unlockChime()),
       again: () => this.startRace(), menu: () => this.showMenu(),
-      pause: () => this.togglePause(), resume: () => this.resume(), restart: () => this.startRace(), quit: () => this.showMenu(), respawn: () => this.respawnPlayer(),
+      pause: () => this.togglePause(), resume: () => this.resume(), restart: () => this.restartCurrent(), quit: () => this.quitCurrent(), respawn: () => this.respawnPlayer(),
+      startMission: () => this.enterHub('lesson'), startChallenge: () => this.enterHub('lesson'), explore: () => this.startExplore(), leaveAdventure: () => this.showMenu(), leaveLesson: () => this.openAdventure(),
+      startDrive: (o, t, c) => this.startRace({ objective: o, title: t, coach: c }),
       settingsChanged: () => this.applySettings(), resetProgress: () => { this.save.reset(); this.applySettings(); this.ui.menu.refresh(); },
     });
     this.ui.setTouch(this.touch);
@@ -196,7 +212,7 @@ export class Game {
   private applyCameraShift(instant = false): void {
     const portrait = this.host.clientHeight > this.host.clientWidth;
     this.rig.chaseShiftY = portrait && this.touch ? -0.16 : portrait ? -0.08 : 0;
-    if (this.mode === 'menu') this.rig.setShift(portrait ? 0 : 0.2, portrait ? -0.2 : 0, instant);
+    if (this.mode === 'menu' || this.mode === 'adventure' || this.mode === 'lesson') this.rig.setShift(portrait ? 0 : 0.2, portrait ? -0.2 : 0, instant);
     else if (this.mode === 'garage') this.rig.setShift(portrait ? 0 : 0.2, portrait ? -0.25 : 0, instant);
     else this.rig.setShift(0, 0, instant);
   }
@@ -209,7 +225,7 @@ export class Game {
   }
 
   private showMenu(): void {
-    this.mode = 'menu'; this.paused = false; this.sim = null; this.ui.modal.hide();
+    this.endEduRun(); this.mode = 'menu'; this.paused = false; this.sim = null; this.ui.modal.hide();
     this.controls.enabled = false; this.controls.reset(); this.audio.silenceEngine();
     this.views.forEach((v, i) => v.setVisible(i === 0));
     this.landmarks.setStartLights(0, false); this.effects.clear(); this.obstacles?.dispose(); this.obstacles = null;
@@ -237,16 +253,18 @@ export class Game {
   private previewCar(v: VehicleId, l: Loadout): void { this.applyLods(); this.views[0].setLook(v, l); }
   private refreshShowcase(): void { const d = this.save.data; this.views[0].setLook(d.selected, d.loadouts[d.selected]); }
 
-  private startRace(): void {
-    this.ui.modal.hide();
+  private startRace(learn?: { objective?: DriveObjective; title?: string; coach?: string }): void {
+    this.ui.modal.hide(); this.endEduRun();
     const s = this.save.data.settings;
-    this.sim = new RaceSim({ laps: s.laps, difficulty: s.difficulty, cars: RACE_CARS, playerSlot: PLAYER_SLOT, seed: 7 }, this.track);
+    this.sim = learn
+      ? new RaceSim({ laps: 99, difficulty: 'normal', cars: 1, playerSlot: 0, seed: 7 }, this.track)
+      : new RaceSim({ laps: s.laps, difficulty: s.difficulty, cars: RACE_CARS, playerSlot: PLAYER_SLOT, seed: 7 }, this.track);
     this.obstacles?.dispose(); this.obstacles = new Obstacles(this.sim.obstacles); this.world.props.add(this.obstacles.group);
     this.applyLods();
     const d = this.save.data;
     const playerPaint = d.loadouts[d.selected].paint;
     this.views.forEach((v, i) => {
-      v.setVisible(true);
+      v.setVisible(!learn || i === 0);
       if (i === 0) v.setLook(d.selected, d.loadouts[d.selected]);
       else { const r = RIVALS[(i - 1) % RIVALS.length]; v.setLook(r.vehicle, r.loadout.paint === playerPaint ? { ...r.loadout, paint: playerPaint === 'cherry' ? 'ocean' : 'cherry' } : r.loadout); }
     });
@@ -256,6 +274,88 @@ export class Game {
     this.ui.hud.resetHint(); this.ui.show('hud'); this.applyCameraShift(true);
     this.sim.step(0); this.snapshotAll(1);
     this.rig.mode = 'intro'; this.audio.unlock();
+    if (learn) this.beginEduRun(learn);
+  }
+
+  // ------------------------------------------------------------------ learning runs (reuse the racing engine, one car, no rivals)
+  private beginEduRun(learn: { objective?: DriveObjective; title?: string; coach?: string }): void {
+    const sim = this.sim!;
+    this.ui.hud.root.classList.add('edu');
+    if (learn.objective) {
+      const tracker = new ObjectiveTracker(learn.objective);
+      this.edu = { kind: 'drive', tracker, unsub: observeRacing(sim, smp => tracker.feed(smp)), objective: learn.objective, title: learn.title ?? '', coach: learn.coach ?? '', ended: false, endAt: 0 };
+      this.markers.setObjective(learn.objective);
+    } else {
+      this.edu = { kind: 'explore', found: this.save.data.edu.discoveries.length };
+      this.markers.setBeacons(DISCOVERY_POINTS, this.save.data.edu.discoveries);
+      // exploring has no countdown: straight onto the road with the chase camera
+      sim.stage = 'racing'; sim.stageTime = 0; sim.raceTime = 0; this.rig.snapChase(this.focusOf(sim.cars[0], this.snaps[0]));
+    }
+    this.ui.eduHud.show(true);
+  }
+  private endEduRun(): void {
+    if (this.edu?.kind === 'drive') this.edu.unsub();
+    this.edu = null; this.markers?.clear(); this.ui?.eduHud.show(false); this.ui?.hud.root.classList.remove('edu');
+  }
+  private startExplore(): void { this.startRace({}); }
+  /** The scene behind the adventure hub and lessons: the showcase car on the coast. */
+  private enterHub(mode: 'adventure' | 'lesson'): void {
+    this.endEduRun(); this.mode = mode; this.paused = false; this.sim = null; this.ui.modal.hide();
+    this.controls.enabled = false; this.controls.reset(); this.audio.silenceEngine();
+    this.views.forEach((v, i) => v.setVisible(i === 0));
+    this.landmarks.setStartLights(0, false); this.effects.clear(); this.obstacles?.dispose(); this.obstacles = null;
+    this.applyLods(); this.refreshShowcase(); this.showcasePose();
+    this.setOrbit({ yaw: 2.5, pitch: 0.17, dist: 9.2, auto: 0.14, minDist: 5.5, maxDist: 14 });
+    this.speedLines.update(0, 0, false);
+  }
+  private openAdventure(): void { this.enterHub('adventure'); this.ui.show('adventure'); this.applyCameraShift(); }
+  private restartCurrent(): void {
+    const e = this.edu;
+    if (e?.kind === 'drive') this.startRace({ objective: e.objective, title: e.title, coach: e.coach });
+    else if (e?.kind === 'explore') this.startExplore();
+    else this.startRace();
+  }
+  private quitCurrent(): void {
+    const e = this.edu;
+    if (e?.kind === 'drive') { e.tracker.abandon('You ended the drive early.'); this.finishDrive(e.tracker.result()); }
+    else if (e?.kind === 'explore') this.openAdventure();
+    else this.showMenu();
+  }
+  /** A scored drive ended: go back to the lesson with the measured result. */
+  private finishDrive(r: DriveResult): void {
+    this.enterHub('lesson'); this.ui.show('lesson'); this.applyCameraShift(); this.ui.lesson.driveFinished(r);
+  }
+  /** Per-frame learning work for the current run. Reads the sim; never writes to it. */
+  private eduTick(sim: RaceSim, dt: number): void {
+    const e = this.edu; if (!e) return;
+    this.markers.update(dt);
+    if (this.noteTimer > 0) { this.noteTimer -= dt; if (this.noteTimer <= 0) this.ui.eduHud.note(null); }
+    if (e.kind === 'drive') {
+      const t = e.tracker;
+      this.ui.eduHud.update(t.live()); this.markers.setSignal(t.signalLit);
+      if (t.done && !e.ended) {
+        e.ended = true; e.endAt = this.time + (t.passed ? 1.7 : 2.2);
+        this.ui.hud.toast(t.passed ? 'Objective complete' : 'Not quite', t.passed ? 'good' : 'warn');
+        if (t.passed) { this.audio.lap(true); this.effects.confetti(this.snaps[0].x, this.snaps[0].y + 3, this.snaps[0].z, 70); } else this.audio.hit(8);
+      }
+      if (e.ended && this.time >= e.endAt) this.finishDrive(t.result());
+      return;
+    }
+    // exploration: collect any field note the car drives through
+    const p = sim.cars[0], L = this.track.length;
+    this.ui.eduHud.exploreInfo(`Field notes ${this.save.data.edu.discoveries.length}/${DISCOVERY_POINTS.length}`);
+    for (const d of DISCOVERY_POINTS) {
+      if (this.save.data.edu.discoveries.includes(d.id)) continue;
+      let ds = Math.abs(p.tq.s - d.at); if (ds > L / 2) ds = L - ds;
+      if (ds > 16 || Math.abs(p.tq.d - d.lat) > 7) continue;
+      let fresh = false; const diff = this.save.data.edu.difficulty;
+      this.save.update(sv => { const r = collectDiscovery(sv.edu, d.id); sv.edu = r.edu; fresh = r.fresh; });
+      if (fresh) {
+        this.markers.markCollected(d.id); this.audio.unlockChime();
+        this.ui.hud.toast(`Field note: ${d.title}`, 'good');
+        this.ui.eduHud.note(`${d.title} · ${conceptById(d.concept).name}`, d.note[diff]); this.noteTimer = 9;
+      }
+    }
   }
 
   private togglePause(): void {
@@ -266,7 +366,7 @@ export class Game {
     if (this.mode !== 'race' || this.paused) return;
     this.paused = true; this.controls.reset(); this.audio.silenceEngine();
     const sim = this.sim, car = sim?.cars[0];
-    const status = sim && car ? `Lap ${Math.min(sim.config.laps, Math.max(1, car.lap + 1))}/${sim.config.laps} · ${ordinal(sim.ranks[0])} of ${sim.cars.length}` : undefined;
+    const status = this.edu?.kind === 'drive' ? this.edu.title : this.edu?.kind === 'explore' ? 'Exploring Discovery Coast' : sim && car ? `Lap ${Math.min(sim.config.laps, Math.max(1, car.lap + 1))}/${sim.config.laps} · ${ordinal(sim.ranks[0])} of ${sim.cars.length}` : undefined;
     this.ui.openPause(() => this.resume(), status);
   }
   private resume(): void { if (this.mode === 'race') { this.paused = false; this.last = performance.now(); } }
@@ -362,6 +462,7 @@ export class Game {
     // player events
     for (const e of p.events) this.playerEvent(e, p);
     p.events.length = 0;
+    if (this.edu) this.eduTick(sim, dt);
     if (this.finishHandled && this.time >= this.finishAt) this.showResults(sim);
   }
 
@@ -477,6 +578,14 @@ export class Game {
     const s = this.sim, p = s?.cars[0];
     return { mode: this.mode, tier: this.tier, paused: this.paused, stage: s?.stage, lap: p?.lap, place: s?.ranks[0], speed: p?.speed, raceTime: s?.raceTime, coins: this.save.data.coins, frames: this.time };
   }
+  /** Debug: finish the current scored drive by letting a scripted driver play the same objective on the real physics. */
+  async debugAutoDrive(opt: { bias?: number } = {}): Promise<boolean> {
+    const e = this.edu; if (e?.kind !== 'drive') return false;
+    const { runObjective } = await import('../edu/testPilot');
+    const r = runObjective(e.objective, opt).result; e.unsub();
+    this.finishDrive(r); return r.passed;
+  }
+  debugEdu(): Record<string, unknown> { const e = this.save.data.edu; return { mode: this.mode, run: this.edu?.kind ?? null, difficulty: e.difficulty, concepts: Object.fromEntries(Object.entries(e.concepts).map(([k, v]) => [k, v.level])), discoveries: e.discoveries.length, reports: e.reports.length, coins: this.save.data.coins }; }
   debugFastForward(seconds: number, autopilot = true): void {
     if (!this.sim) return;
     if (autopilot) this.sim.autopilot = true;

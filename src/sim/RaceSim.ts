@@ -42,6 +42,8 @@ export class RaceSim {
   /** When true the player's car is driven by the autopilot (after finishing, or for tests). */
   autopilot = false;
   readonly playerInput: CarInput = newInput();
+  /** Read-only observers called at the end of every fixed step (used by the learning layer; they must not mutate the sim). */
+  readonly observers: Array<(sim: RaceSim) => void> = [];
   private readonly drivers: (AIDriver | null)[] = [];
   private readonly aiProfile: Float32Array;
   private readonly tmp = { x: 0, y: 0, z: 0, heading: 0, tx: 0, tz: 0 };
@@ -149,6 +151,7 @@ export class RaceSim {
       this.autopilot = true;
       this.stage = 'finished'; this.stageTime = 0;
     }
+    for (const o of this.observers) o(this);
   }
 
   private updateProgress(car: CarState): void {

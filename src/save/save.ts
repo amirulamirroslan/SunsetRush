@@ -1,8 +1,10 @@
 import { CATEGORIES, DEFAULT_LOADOUTS, defaultUnlocked, isVehicleId, type CategoryId, type Loadout, type VehicleId } from '../data/catalog';
 import { DIFFICULTIES, type Difficulty } from '../sim/rewards';
+import { defaultEdu, sanitizeEdu, type EduSave } from '../edu/state';
 
 export const SAVE_KEY = 'sunset-rush.save.v1';
-export const SAVE_VERSION = 1;
+/** v1: racing progress only. v2: adds the `edu` learning block (older saves load unchanged and gain a fresh learning profile). */
+export const SAVE_VERSION = 2;
 export const START_COINS = 100;
 
 export type QualitySetting = 'auto' | 'high' | 'medium' | 'low';
@@ -17,6 +19,8 @@ export interface SaveData {
   best: { lap: number | null; race: number | null };
   stats: { races: number; wins: number; podiums: number };
   settings: { quality: QualitySetting; sound: boolean; autoAccelerate: boolean; laps: number; difficulty: Difficulty };
+  /** Educational Racing Adventure progress (learning difficulty, mastery, missions, journal). Separate from racing progress. */
+  edu: EduSave;
 }
 
 export function defaultSave(): SaveData {
@@ -27,6 +31,7 @@ export function defaultSave(): SaveData {
     best: { lap: null, race: null },
     stats: { races: 0, wins: 0, podiums: 0 },
     settings: { quality: 'auto', sound: true, autoAccelerate: true, laps: 3, difficulty: 'normal' },
+    edu: defaultEdu(),
   };
 }
 
@@ -38,6 +43,7 @@ const posOrNull = (v: unknown): number | null => (typeof v === 'number' && Numbe
 export function sanitizeSave(raw: unknown): SaveData {
   const out = defaultSave();
   if (!isObj(raw)) return out;
+  out.edu = sanitizeEdu(raw.edu);
   out.coins = Math.floor(num(raw.coins, 0, 9_999_999, START_COINS));
   const unlockedRaw = isObj(raw.unlocked) ? raw.unlocked : {};
   (Object.keys(CATEGORIES) as CategoryId[]).forEach(cat => {

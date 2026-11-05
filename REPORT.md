@@ -1,3 +1,15 @@
+# Educational Racing Adventure: milestone 1 report
+
+See the top of `HANDOVER.md` for the technical mapping, scope, verification and gaps.
+
+**New files:** `src/edu/**` (types, difficulty, telemetry, objectives, assessment, mastery, state, engine, testPilot, content/{world,qhelp,missionsMath,missionsScience,missionsRoad,labs,transfer,index}, edu.test.ts), `src/render/eduMarkers.ts`, `src/ui/{adventure,lesson,eduViews,eduHud}.ts`, `src/ui/edu.css`.
+**Changed files:** `src/sim/RaceSim.ts` (observer hook), `src/save/save.ts` (v2 + edu block), `src/app/Game.ts` (adventure/lesson modes, drive and explore runs, debug hooks), `src/ui/UI.ts`, `src/ui/menu.ts` (Adventure button), `src/main.ts` (edu.css).
+
+**Test results:** tsc clean; build OK; vitest 104 pass / 2 fail (both pre-existing: racing convoy spread, vegetation draw calls). Browser: one full Easy mission, reload persistence, difficulty change, three viewports, 0 console errors.
+**Pending:** failure/challenge/Explore browser tests, human playtest, the 2 old failing tests, remaining subjects and regions.
+
+---
+
 # Premium Global Motorsport pass: natural daylight reference
 
 See the top section of `HANDOVER.md` for the full change list, evidence and verification. Summary: sunset identity removed from the rendering pipeline and replaced by data-driven lighting presets (`src/render/atmosphere.ts`; default natural daylight), with a rebuilt sky/clouds, alpine snow-capped backdrop, more natural terrain/vegetation/asphalt colours, and neutral grading. Before/after screenshots: `docs/art-direction-daylight/`. Tests 74/74, build OK. High tier and phone-portrait frames checked (one frame each). Not measured: draw calls, real-GPU fps, phone landscape/touch.

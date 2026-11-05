@@ -1,4 +1,5 @@
 import './ui/styles.css';
+import './ui/edu.css';
 import { Game } from './app/Game';
 import { createSplash } from './ui/splash';
 

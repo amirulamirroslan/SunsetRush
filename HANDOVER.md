@@ -1,3 +1,31 @@
+# EDUCATIONAL RACING ADVENTURE: milestone 1, Discovery Coast (current)
+
+**Design authority:** the "PROJECT HANDOVER — EDUCATIONAL RACING ADVENTURE" brief. No Git/GitHub; ZIP checkpoints only. Older sections below are history (the art-direction work is untouched and still applies).
+
+## Technical mapping (how the learning layer sits on the racing engine)
+- `src/sim` is pure fixed-step (120 Hz) physics. The only change: `RaceSim.observers` (read-only callbacks run at the end of `step()`). `src/edu/telemetry.ts` turns the sim into `Sample`s. Evaluation never writes to the sim; `edu.test.ts` proves observed and unobserved runs are bit-identical.
+- `src/edu` is pure TypeScript (no DOM, no Three): `types`, `difficulty` (3 learning profiles), `objectives` (`ObjectiveTracker`: section/gate/stop legs from interpolated boundary crossings), `assessment` (deterministic questions + grading), `mastery` (state machine), `state` (versioned `EduSave`, sanitize + migrate), `engine` (unlock rules, stars, coins, reports), `testPilot` (scripted driver on the real physics), `content/*` (curated, deterministic, no runtime AI).
+- UI: `src/ui/adventure.ts` (hub, onboarding, journal, profile), `lesson.ts` (Discover → Understand → Experiment → Drive → Apply → Reflect → Master report), `eduViews.ts` (question + lab views), `eduHud.ts` (in-drive objective strip, STOP signal, field-note toast), `edu.css`; `src/render/eduMarkers.ts` (gates, stop box, beacons).
+- `src/app/Game.ts`: modes `adventure`/`lesson`; `beginEduRun` (single-car, no rivals, objective drive) and `startExplore` (free roam collecting 9 field notes); `eduTick`; debug hooks `?debug` → `__rush.debugAutoDrive()` / `debugEdu()`.
+- Save: `SAVE_VERSION` 2, adds `edu` block (`EDU_VERSION` 1). Old v1 saves load and gain a default edu block; learning difficulty is separate from rival AI difficulty.
+
+## Delivered
+3 characters (Kai/Maths, Lina/Science, Omar/Road Safety), 9 missions × 3 learning difficulties (27 variants, each with understand cards, practice, a drive objective and telemetry-based apply questions), 3 labs, 3 mastery challenges, adventure exploration (9 field notes), mission journal, learning profile, post-mission report, difficulty switch at any time with progress kept. Mastery ladder Discovered → Learning → Practised → Applied → Mastered; Mastered needs a correct answer to a never-seen transfer scenario (2 per concept per difficulty). Automotive Engineering and Geography, and the other four regions, are shown as "coming later".
+
+## Verified
+- `tsc` clean; `vite build` OK.
+- `vitest`: 104 pass, 2 fail. **Both failures pre-date this work** (`racing.test.ts` convoy spread 0.73 vs >2.5; `vegetation.test.ts` draw-call batching 484 vs <242). 27 new tests in `src/edu/edu.test.ts`: content integrity, all 36 objectives achievable on real physics, tracker accuracy, stop test, non-interference, mastery rules, full learning loop, difficulty change, labs, save/migration/sanitise.
+- Headless Chromium (software GL, `?debug`): menu → Adventure → onboarding → hub; one full Easy mission (Speed Trap) through every step to the report (2/3 correct, passed, +40 coins), lab gated until goal is met; save → reload keeps progress; switching to Medium keeps concept progress and unlocks per difficulty; 0 console/page errors. Hub and lesson screenshots checked at 960x540, 667x375 (touch) and 390x844 (touch); layout fixes made from them.
+
+## NOT verified (be honest about these)
+Mission **failure** and retry path and the challenge flow in the browser (covered by unit tests only); the Hard and Medium drive objectives in the browser (the pilot covers them in tests); Explore mode in the browser; real touch driving feel; real-GPU frame rate; audio; the 2 pre-existing failing tests were not fixed. The in-browser drive was completed by `debugAutoDrive` (scripted pilot), not by a human.
+
+## Pending / next
+1. Human playtest of each mission at each difficulty; tune objective tolerances if too hard on touch.
+2. Browser tests for failure/retry, challenges, Explore. 3. Fix or re-baseline the 2 old failing tests. 4. Content for Automotive Engineering and Geography, other regions. 5. Optional Playwright e2e script in `tools/`.
+
+---
+
 # Art direction change: Premium Global Motorsport (current)
 
 **The sunset theme is discontinued.** Target: premium, realistic, modern 3D racing; natural daylight; multiple geographic environments (alpine, tropical coast, city, desert, forest, snow). Game name/logo/package/repo name are intentionally unchanged for now. **No Git/GitHub for this task**: older lines below about branches, commits and pushes are superseded; deliver ZIP checkpoints only.

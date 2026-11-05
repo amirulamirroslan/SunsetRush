@@ -6,7 +6,7 @@ import type { SaveStore } from '../save/save';
 import type { Track } from '../sim/Track';
 import { VEHICLES } from '../data/catalog';
 
-export interface MenuActions { race(): void; garage(): void; settings(): void; help(): void; toggleSound(): void }
+export interface MenuActions { adventure(): void; race(): void; garage(): void; settings(): void; help(): void; toggleSound(): void }
 
 export class Menu {
   readonly root = el('div', { id: 'menu', class: 'screen' });
@@ -38,7 +38,8 @@ export class Menu {
     if (this.setupOpen) this.col.append(this.setup());
     else {
       this.col.append(el('div', { class: 'menu-btns' }, [
-        el('button', { class: 'btn', onclick: () => { this.setupOpen = true; this.render(); (this.col.querySelector('.btn.good, .btn') as HTMLElement | null)?.focus(); } }, [icon('play'), 'Race']),
+        el('button', { class: 'btn good', onclick: this.a.adventure }, [icon('flag'), 'Adventure']),
+        el('button', { class: 'btn ghost', onclick: () => { this.setupOpen = true; this.render(); (this.col.querySelector('.btn.good, .btn') as HTMLElement | null)?.focus(); } }, [icon('play'), 'Race']),
         el('button', { class: 'btn ghost', onclick: this.a.garage }, [icon('car'), 'Garage']),
         el('button', { class: 'btn ghost', onclick: this.a.settings }, [icon('sliders'), 'Settings']),
         el('button', { class: 'btn ghost small', onclick: this.a.help }, [icon('help'), 'How to play']),
